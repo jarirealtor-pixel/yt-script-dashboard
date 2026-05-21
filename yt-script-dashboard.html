@@ -222,7 +222,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
     <div class="header-sub">경제학 똑똑 스타일 · 4단계 프레임워크 · 졸라맨 중개사 이미지 자동생성</div>
   </div>
   <div class="header-right">
-    <span class="badge-green badge">Pollinations.ai</span>
+    <span class="badge-green badge">Imagen 3</span>
     <span class="badge">Claude AI</span>
   </div>
 </div>
@@ -243,12 +243,26 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
   <div class="left-content" id="lc-settings">
 
     <div>
-      <div class="section-title">Claude API</div>
+      <div class="section-title">Claude API (대본 생성)</div>
       <div class="input-group">
         <label>API Key</label>
         <div class="key-row">
           <input type="password" id="apiKey" placeholder="sk-ant-api03-..."/>
           <button class="btn btn-ghost btn-sm" onclick="toggleKey()">보기</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Gemini API (이미지 생성 · Imagen 3)</div>
+      <div class="input-group">
+        <label>API Key <span style="color:var(--accent3);font-size:.7rem;">★ 이미지 생성 필수</span></label>
+        <div class="key-row">
+          <input type="password" id="geminiApiKey" placeholder="AIza..."/>
+          <button class="btn btn-ghost btn-sm" onclick="toggleGeminiKey()">보기</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:4px;">
+          <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com</a> → Get API key
         </div>
       </div>
     </div>
@@ -626,7 +640,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
     <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:.76rem;color:var(--text2);line-height:1.7;">
       🎨 <strong style="color:var(--text)">스토리보드 이미지 안내</strong><br>
       ± 버튼으로 단계별 장수 조절 (최소 1장, 최대 10장) · 가로 스크롤로 전체 확인<br>
-      Claude가 대본을 N장 장면으로 분해 → Pollinations.ai 무료 이미지 생성 (장당 10~20초)
+      Claude가 대본을 N장 장면으로 분해 → Gemini Imagen 3으로 고품질 이미지 생성 (장당 3~8초)
     </div>
 
   </div><!-- /rc-image -->
@@ -691,6 +705,42 @@ function showKeySaved(saved){
     badge.textContent='';
   }
 }
+// ── Gemini API Key 자동 저장/복원 ──
+(function initGeminiKey(){
+  const saved = localStorage.getItem('yt_gemini_api_key');
+  if(saved){ document.getElementById('geminiApiKey').value = saved; showGeminiKeySaved(true); }
+})();
+
+document.getElementById('geminiApiKey').addEventListener('input', function(){
+  const v = this.value.trim();
+  if(v.startsWith('AIza') && v.length > 20){
+    localStorage.setItem('yt_gemini_api_key', v);
+    showGeminiKeySaved(true);
+  } else if(!v){
+    localStorage.removeItem('yt_gemini_api_key');
+    showGeminiKeySaved(false);
+  }
+});
+
+function showGeminiKeySaved(saved){
+  let badge = document.getElementById('geminiKeySavedBadge');
+  if(!badge){
+    badge = document.createElement('span');
+    badge.id = 'geminiKeySavedBadge';
+    badge.style.cssText='font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:4px;';
+    document.getElementById('geminiApiKey').parentElement.appendChild(badge);
+  }
+  badge.textContent = saved ? '💾 저장됨' : '';
+  badge.style.background = '#1a2d1a';
+  badge.style.color = '#52c41a';
+  badge.style.border = saved ? '1px solid #1f4d1f' : 'none';
+}
+
+function toggleGeminiKey(){
+  const inp = document.getElementById('geminiApiKey');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+}
+
 document.getElementById('charName').addEventListener('input', function(){
   document.getElementById('charNameDisplay').textContent = this.value;
 });
@@ -1204,12 +1254,12 @@ function renderStrip(n){
   }
   strip.innerHTML = stepImages[n].map((img,i)=>`
     <div class="thumb-card" id="tc_${n}_${i}">
-      <div class="thumb-wrap" onclick="openThumb('${img.url}')">
+      <div class="thumb-wrap" onclick="openThumb(${n},${i})">
         <img class="thumb-img${img.loaded?' loaded':''}" id="timg_${n}_${i}"
            ${img.loaded ? `src="${img.url}"` : ''} alt=""/>
         <div class="thumb-overlay${img.loaded?' hidden':''}" id="tov_${n}_${i}">
           ${img.url
-            ? `<div class="css-spinner"></div><span style="font-size:.65rem;color:var(--text2)">대기</span>`
+            ? `<div class="css-spinner"></div><span style="font-size:.65rem;color:var(--text2)">생성 중</span>`
             : `<span style="font-size:1.4rem">${['💥','⚠️','🔍','✅'][n-1]}</span><span style="font-size:.65rem;color:var(--text2)">대기</span>`
           }
         </div>
@@ -1218,9 +1268,9 @@ function renderStrip(n){
       </div>
       <div class="thumb-desc">${img.prompt||''}</div>
       <div class="thumb-actions">
-        ${img.url ? `
-          <a class="btn btn-ghost btn-xs" href="${img.url}" target="_blank">🔗</a>
-          <a class="btn btn-success btn-xs" href="${img.url}" download="scene_${n}_${i+1}.jpg" target="_blank">💾</a>
+        ${img.loaded ? `
+          <button class="btn btn-ghost btn-xs" onclick="openThumb(${n},${i})">🔗 열기</button>
+          <button class="btn btn-success btn-xs" onclick="downloadThumb(${n},${i})">💾</button>
         ` : ''}
       </div>
     </div>
@@ -1246,27 +1296,49 @@ function onThumbError(n,i){
 }
 
 async function regenThumb(n,i){
-  if(!document.getElementById('apiKey').value.trim()){ toast('API Key 필요','error'); return; }
+  const geminiKey = document.getElementById('geminiApiKey').value.trim();
+  if(!geminiKey){ toast('Gemini API Key를 입력해주세요','error'); return; }
   const scene = stepImages[n][i]?.prompt || SCENE_FALLBACKS[n][0];
-  const url = buildThumbUrl(n, i, scene, Math.floor(Math.random()*999));
-  stepImages[n][i].url = url;
   stepImages[n][i].loaded = false;
-  setThumbLoading(n, i);
-  await loadThumbWithRetry(n, i, url);
+  await generateAndLoadThumb(n, i, scene, geminiKey);
 }
 
-function openThumb(url){
-  if(url) window.open(url,'_blank');
+function openThumb(n, i){
+  const url = stepImages[n]?.[i]?.url;
+  if(!url) return;
+  const w = window.open('','_blank');
+  if(w) w.document.write(`<!DOCTYPE html><html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${url}" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>`);
 }
 
-// ── 이미지 URL 빌드 ──
-function buildThumbUrl(n, i, scene, extraSeed=0){
-  const charBase = document.getElementById('charPrompt').value.trim().slice(0,50);
-  const styleShort = selectedStyle.split(',')[0].trim().slice(0,20);
-  const combined = `${charBase}, ${scene}, ${styleShort}`.slice(0,120);
-  const seed = 7777 + n*100 + i*17 + extraSeed;
-  // flux-schnell: 빠르고 안정적인 모델
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(combined)}?width=512&height=288&seed=${seed}&model=flux-schnell&nologo=true`;
+// ── Gemini Imagen 3 API 호출 ──
+async function callImagenAPI(prompt, geminiKey){
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${geminiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instances: [{ prompt }],
+        parameters: { sampleCount: 1, aspectRatio: '16:9' }
+      })
+    }
+  );
+  if(!resp.ok){
+    const e = await resp.json().catch(()=>({error:{message:`HTTP ${resp.status}`}}));
+    throw new Error(e.error?.message || `HTTP ${resp.status}`);
+  }
+  const data = await resp.json();
+  const pred = data.predictions?.[0];
+  if(!pred?.bytesBase64Encoded) throw new Error('이미지 데이터 없음');
+  const mime = pred.mimeType || 'image/png';
+  return `data:${mime};base64,${pred.bytesBase64Encoded}`;
+}
+
+// ── 이미지 프롬프트 빌드 (길이 제한 없음) ──
+function buildImagePrompt(scene){
+  const charBase = document.getElementById('charPrompt').value.trim();
+  const style = selectedStyle;
+  return `${charBase}, ${scene}, ${style}, storyboard panel illustration, simple clear background`;
 }
 
 // ── 썸네일 로딩 상태 표시 ──
@@ -1277,75 +1349,68 @@ function setThumbLoading(n, i){
   if(ret) ret.style.display='none';
 }
 
-// ── 이미지 1장: 최대 maxTry회 재시도, 완료까지 대기 ──
-function loadThumbWithRetry(n, i, url, maxTry=4){
-  return new Promise(resolve=>{
-    let attempt=0;
-    const tryLoad=()=>{
-      attempt++;
+// ── 이미지 1장 생성 (Imagen 3, 최대 maxTry회) ──
+async function generateAndLoadThumb(n, i, scene, geminiKey, maxTry=3){
+  setThumbLoading(n, i);
+  const prompt = buildImagePrompt(scene);
+  for(let attempt=1; attempt<=maxTry; attempt++){
+    try{
+      const dataUrl = await callImagenAPI(prompt, geminiKey);
+      stepImages[n][i].url = dataUrl;
+      stepImages[n][i].loaded = true;
       const imgEl = document.getElementById(`timg_${n}_${i}`);
-      if(!imgEl){ resolve(); return; }
-
-      imgEl.onload = null; imgEl.onerror = null;
-
-      // flux-schnell은 보통 10~20초, 여유있게 45초
-      const timer = setTimeout(()=>{
-        imgEl.src='';
-        if(attempt < maxTry){
-          const delay = 3000 * attempt;
-          toast(`장면 ${i+1} 타임아웃 → ${delay/1000}초 후 재시도 (${attempt}/${maxTry})`,'info');
-          setTimeout(tryLoad, delay);
-        } else { onThumbError(n,i); resolve(); }
-      }, 45000);
-
-      imgEl.onload=()=>{ clearTimeout(timer); onThumbLoad(n,i); resolve(); };
-      imgEl.onerror=()=>{
-        clearTimeout(timer);
-        if(attempt < maxTry){
-          const delay = 2500 * attempt;
-          toast(`장면 ${i+1} 재시도 중 (${attempt}/${maxTry})`,'info');
-          // 새 seed로 재요청
-          url = buildThumbUrl(n, i, stepImages[n][i]?.prompt || '', attempt*31);
-          setTimeout(tryLoad, delay);
-        } else { onThumbError(n,i); resolve(); }
-      };
-      imgEl.src = url;
-    };
-    tryLoad();
-  });
+      const ov = document.getElementById(`tov_${n}_${i}`);
+      const ret = document.getElementById(`tret_${n}_${i}`);
+      if(imgEl){ imgEl.src = dataUrl; imgEl.classList.add('loaded'); }
+      if(ov) ov.classList.add('hidden');
+      if(ret) ret.style.display='none';
+      updateTotalCount();
+      return;
+    }catch(e){
+      if(attempt < maxTry){
+        toast(`장면 ${i+1} 재시도 (${attempt}/${maxTry}): ${String(e.message).slice(0,50)}`,'info');
+        await new Promise(r=>setTimeout(r, 1500 * attempt));
+      } else {
+        onThumbError(n, i);
+        toast(`장면 ${i+1} 실패: ${String(e.message).slice(0,60)}`,'error');
+      }
+    }
+  }
 }
 
-// ── 단계별 이미지 생성 (진짜 순차) ──
+// ── 썸네일 다운로드 ──
+function downloadThumb(n, i){
+  const img = stepImages[n]?.[i];
+  if(!img?.url || !img.loaded) return;
+  const a = document.createElement('a');
+  a.href = img.url;
+  a.download = `졸라맨_step${n}_${i+1}.png`;
+  a.click();
+}
+
+// ── 단계별 이미지 생성 (Imagen 3 순차) ──
 async function generateStepImages(n){
-  const apiKey = document.getElementById('apiKey').value.trim();
-  if(!apiKey){ toast('API Key가 필요합니다','error'); return; }
+  const apiKey = document.getElementById('apiKey').value.trim();       // Claude (선택)
+  const geminiKey = document.getElementById('geminiApiKey').value.trim(); // Gemini (필수)
+  if(!geminiKey){ toast('Gemini API Key를 입력해주세요','error'); return; }
   const count = imgCounts[n];
 
   setSiStatus(n,'gen');
   setStripProgress(n,0);
   toast(`Step ${n}: 장면 ${count}개 분석 중...`,'info');
 
-  // 1. Claude로 장면 설명 일괄 받기
+  // 1. Claude로 장면 설명 (없으면 fallback 자동 사용)
   const scenes = await getScenePrompts(n, count, apiKey);
 
-  // 2. 슬롯 초기화 → 한 번만 렌더 (src 없이)
+  // 2. 슬롯 초기화 → 한 번만 렌더
   stepImages[n] = scenes.map(prompt=>({prompt, url:'', loaded:false}));
   renderStrip(n);
 
-  // 3. 이미지를 한 장씩 순서대로 완료 후 다음 시작
+  // 3. Imagen 3으로 한 장씩 순서대로 생성
   for(let i=0; i<count; i++){
-    const url = buildThumbUrl(n, i, scenes[i]);
-    stepImages[n][i].url = url;
-
-    // 로딩 스피너 표시 (DOM 이미 존재)
-    setThumbLoading(n, i);
-
-    // 이 이미지가 완전히 끝날 때까지 대기 (성공 or 최종 실패)
-    await loadThumbWithRetry(n, i, url);
-
+    await generateAndLoadThumb(n, i, scenes[i], geminiKey);
     setStripProgress(n, Math.round((i+1)/count*100));
-    // 다음 요청 전 짧은 간격
-    if(i < count-1) await new Promise(r=>setTimeout(r, 400));
+    if(i < count-1) await new Promise(r=>setTimeout(r, 500));
   }
 
   setSiStatus(n,'done');
@@ -1362,18 +1427,25 @@ async function generateAllImages(){
   toast('전체 이미지 생성 완료!','success');
 }
 
-// ── 캐릭터 미리보기 ──
-function previewCharacter(){
-  const charPrompt = document.getElementById('charPrompt').value.trim().slice(0,50);
-  const styleShort = selectedStyle.split(',')[0].trim().slice(0,20);
-  const fullPrompt = `${charPrompt}, standing, ${styleShort}`.slice(0,100);
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=200&height=200&seed=9999&nologo=true`;
+// ── 캐릭터 미리보기 (Imagen 3) ──
+async function previewCharacter(){
+  const geminiKey = document.getElementById('geminiApiKey').value.trim();
+  if(!geminiKey){ toast('Gemini API Key를 입력해주세요','error'); return; }
+  const charPrompt = document.getElementById('charPrompt').value.trim();
+  const style = selectedStyle;
+  const prompt = `${charPrompt}, standing pose, full body, ${style}, character reference sheet`;
   const img = document.getElementById('charPreviewImg');
   const ph  = document.getElementById('charPreviewPlaceholder');
   ph.textContent='⏳'; ph.style.display='flex'; img.style.display='none';
-  img.onload=()=>{ ph.style.display='none'; img.style.display='block'; toast('캐릭터 미리보기 완료!','success'); };
-  img.onerror=()=>{ ph.textContent='❌'; toast('미리보기 실패','error'); };
-  img.src=url;
+  try{
+    const dataUrl = await callImagenAPI(prompt, geminiKey);
+    img.src = dataUrl;
+    ph.style.display='none'; img.style.display='block';
+    toast('캐릭터 미리보기 완료!','success');
+  }catch(e){
+    ph.textContent='❌';
+    toast('미리보기 실패: '+String(e.message).slice(0,60),'error');
+  }
 }
 
 // ── 전체 저장 ──
@@ -1381,13 +1453,10 @@ async function downloadAllImages(){
   let count=0;
   for(let n=1;n<=4;n++){
     for(let i=0;i<stepImages[n].length;i++){
-      const img = stepImages[n][i];
-      if(img.url && img.loaded){
-        await new Promise(r=>setTimeout(r,300));
-        const a=document.createElement('a');
-        a.href=img.url; a.target='_blank';
-        a.download=`졸라맨_step${n}_${i+1}.jpg`;
-        a.click(); count++;
+      if(stepImages[n][i].url && stepImages[n][i].loaded){
+        await new Promise(r=>setTimeout(r,200));
+        downloadThumb(n, i);
+        count++;
       }
     }
   }
