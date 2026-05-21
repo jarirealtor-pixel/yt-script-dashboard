@@ -1,0 +1,11 @@
+{
+    "name": "중개편리",
+    "short_name": "중개편리",
+    "description": "공인중개사 업무관리 앱",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2563eb",
+    "orientation": "portrait",
+    "icons": []
+}

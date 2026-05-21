@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>중개편리 - 공인중개사 업무관리</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div id="app">
+        <!-- 헤더 -->
+        <header class="header">
+            <h1 class="header-title">중개편리</h1>
+            <p class="header-subtitle" id="headerSubtitle">대시보드</p>
+        </header>
+
+        <!-- 메인 컨텐츠 영역 -->
+        <main class="main-content" id="mainContent">
+            <!-- 대시보드 (기본 화면) -->
+            <section id="page-dashboard" class="page active">
+                <div class="dashboard-summary">
+                    <div class="summary-card blue">
+                        <span class="summary-number" id="totalCustomers">0</span>
+                        <span class="summary-label">고객</span>
+                    </div>
+                    <div class="summary-card green">
+                        <span class="summary-number" id="totalProperties">0</span>
+                        <span class="summary-label">매물</span>
+                    </div>
+                    <div class="summary-card orange">
+                        <span class="summary-number" id="todaySchedules">0</span>
+                        <span class="summary-label">오늘 일정</span>
+                    </div>
+                    <div class="summary-card purple">
+                        <span class="summary-number" id="totalContracts">0</span>
+                        <span class="summary-label">계약진행</span>
+                    </div>
+                </div>
+
+                <div class="section-title">오늘의 일정</div>
+                <div id="todayScheduleList" class="schedule-list">
+                    <div class="empty-state">오늘 예정된 일정이 없습니다</div>
+                </div>
+
+                <div class="section-title">최근 등록 고객</div>
+                <div id="recentCustomerList" class="customer-list">
+                    <div class="empty-state">등록된 고객이 없습니다</div>
+                </div>
+            </section>
+
+            <!-- 고객 관리 -->
+            <section id="page-customers" class="page">
+                <div class="page-actions">
+                    <button class="btn btn-primary" onclick="showCustomerForm()">+ 고객 등록</button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="customerSearch" placeholder="고객명, 연락처로 검색..." oninput="filterCustomers()">
+                </div>
+                <div id="customerList" class="customer-list">
+                    <div class="empty-state">등록된 고객이 없습니다<br><small>위의 '고객 등록' 버튼을 눌러주세요</small></div>
+                </div>
+            </section>
+
+            <!-- 매물 관리 -->
+            <section id="page-properties" class="page">
+                <div class="page-actions">
+                    <button class="btn btn-primary" onclick="showPropertyForm()">+ 매물 등록</button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="propertySearch" placeholder="주소, 매물종류로 검색..." oninput="filterProperties()">
+                </div>
+                <div id="propertyList" class="property-list">
+                    <div class="empty-state">등록된 매물이 없습니다<br><small>위의 '매물 등록' 버튼을 눌러주세요</small></div>
+                </div>
+            </section>
+
+            <!-- 일정 관리 -->
+            <section id="page-schedules" class="page">
+                <div class="page-actions">
+                    <button class="btn btn-primary" onclick="showScheduleForm()">+ 일정 등록</button>
+                </div>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" onclick="filterSchedules('all', this)">전체</button>
+                    <button class="filter-tab" onclick="filterSchedules('viewing', this)">집보기</button>
+                    <button class="filter-tab" onclick="filterSchedules('contract', this)">계약</button>
+                    <button class="filter-tab" onclick="filterSchedules('meeting', this)">미팅</button>
+                </div>
+                <div id="scheduleList" class="schedule-list">
+                    <div class="empty-state">등록된 일정이 없습니다</div>
+                </div>
+            </section>
+
+            <!-- 자료송부 / 계약서 -->
+            <section id="page-documents" class="page">
+                <div class="doc-menu">
+                    <div class="doc-card" onclick="showSendMaterialForm()">
+                        <div class="doc-icon">📋</div>
+                        <div class="doc-title">매물자료 송부</div>
+                        <div class="doc-desc">고객에게 매물 정보를 문자/카톡으로 전송</div>
+                    </div>
+                    <div class="doc-card" onclick="showContractDraftForm()">
+                        <div class="doc-icon">📝</div>
+                        <div class="doc-title">계약서 초안</div>
+                        <div class="doc-desc">매매/전세/월세 계약서 초안 작성</div>
+                    </div>
+                    <div class="doc-card" onclick="showSendHistory()">
+                        <div class="doc-icon">📤</div>
+                        <div class="doc-title">송부 내역</div>
+                        <div class="doc-desc">자료 및 계약서 송부 이력 확인</div>
+                    </div>
+                </div>
+                <div id="documentContent"></div>
+            </section>
+        </main>
+
+        <!-- 하단 네비게이션 -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="navigateTo('dashboard', this)">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">홈</span>
+            </button>
+            <button class="nav-item" onclick="navigateTo('customers', this)">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">고객</span>
+            </button>
+            <button class="nav-item" onclick="navigateTo('properties', this)">
+                <span class="nav-icon">🏢</span>
+                <span class="nav-label">매물</span>
+            </button>
+            <button class="nav-item" onclick="navigateTo('schedules', this)">
+                <span class="nav-icon">📅</span>
+                <span class="nav-label">일정</span>
+            </button>
+            <button class="nav-item" onclick="navigateTo('documents', this)">
+                <span class="nav-icon">📄</span>
+                <span class="nav-label">자료</span>
+            </button>
+        </nav>
+
+        <!-- 모달 오버레이 -->
+        <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+            <div class="modal" id="modalContent" onclick="event.stopPropagation()">
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/customers.js"></script>
+    <script src="js/properties.js"></script>
+    <script src="js/schedules.js"></script>
+    <script src="js/documents.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
