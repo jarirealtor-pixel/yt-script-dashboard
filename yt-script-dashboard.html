@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube 대본 생성 대시보드 — 경제학 똑똑 스타일</title>
+<style>
+:root {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#222536; --surface3:#2a2e45;
+  --border:#2e3248; --accent:#6c63ff; --accent2:#ff6584; --accent3:#43e97b;
+  --accent4:#f9a825; --text:#e2e4f0; --text2:#8b8fa8;
+  --red:#ff4d4f; --yellow:#faad14; --green:#52c41a; --blue:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ── Header ── */
+.header{background:linear-gradient(135deg,#1a1d27,#12162b);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;gap:14px;}
+.header-icon{font-size:1.8rem;}
+.header-title{font-size:1.3rem;font-weight:700;color:#fff;}
+.header-sub{font-size:.75rem;color:var(--text2);margin-top:2px;}
+.header-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.badge{background:var(--accent);color:#fff;font-size:.68rem;padding:3px 10px;border-radius:12px;font-weight:700;}
+.badge-green{background:#1a4d2e;color:var(--green);border:1px solid #2d7a49;}
+
+/* ── Layout ── */
+.layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 60px);}
+
+/* ── Left Panel ── */
+.left{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.left-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ltab{flex:1;padding:10px 6px;font-size:.75rem;font-weight:600;text-align:center;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;}
+.ltab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(108,99,255,.06);}
+.left-content{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;}
+.left-content.hidden{display:none;}
+
+/* ── Right Panel ── */
+.right{display:flex;flex-direction:column;overflow:hidden;}
+.right-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;padding:0 20px;}
+.rtab{padding:12px 20px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;}
+.rtab.active{color:#fff;border-bottom-color:var(--accent);}
+.right-content{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;}
+.right-content.hidden{display:none;}
+
+/* ── Common ── */
+.section-title{font-size:.69rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:10px;}
+.input-group{display:flex;flex-direction:column;gap:5px;}
+label{font-size:.8rem;color:var(--text2);}
+input[type=text],input[type=password],textarea,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:9px 13px;font-size:.85rem;width:100%;outline:none;transition:border-color .2s;font-family:inherit;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:65px;}
+
+/* ── Buttons ── */
+.btn{border:none;border-radius:7px;padding:9px 16px;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:7px;justify-content:center;}
+.btn-primary{background:var(--accent);color:#fff;width:100%;}
+.btn-primary:hover:not(:disabled){background:#8178ff;}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--accent);color:#fff;}
+.btn-success{background:#1a2d1a;color:var(--green);border:1px solid #1f4d1f;}
+.btn-danger{background:#2d1515;color:var(--red);border:1px solid #4d2020;}
+.btn-img{background:linear-gradient(135deg,#2d1f5a,#1f2d5a);color:#c4b5fd;border:1px solid #4a3a8a;}
+.btn-img:hover{background:linear-gradient(135deg,#3d2a7a,#2a3d7a);}
+.btn-sm{padding:5px 12px;font-size:.76rem;border-radius:6px;}
+.btn-xs{padding:3px 9px;font-size:.7rem;border-radius:5px;}
+
+/* ── Hook cards ── */
+.hook-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.hook-card{background:var(--surface2);border:2px solid var(--border);border-radius:8px;padding:9px;cursor:pointer;transition:all .18s;}
+.hook-card:hover{border-color:var(--accent);}
+.hook-card.selected{border-color:var(--accent);background:#1e2240;}
+.hk-icon{font-size:1rem;}
+.hk-name{font-size:.73rem;font-weight:700;margin-top:3px;}
+.hk-desc{font-size:.64rem;color:var(--text2);margin-top:2px;line-height:1.3;}
+
+/* ── Tags ── */
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;}
+.tag{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:.72rem;cursor:pointer;color:var(--text2);transition:all .15s;}
+.tag:hover{border-color:var(--accent2);color:var(--text);}
+.tag.selected{border-color:var(--accent2);background:#2a1e2e;color:var(--accent2);font-weight:600;}
+
+/* ── Progress bar ── */
+.progress-bar{background:var(--border);border-radius:4px;height:4px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent3));transition:width .5s ease;}
+
+/* ── 참고자료 ── */
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2);}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:#1e2240;}
+.drop-zone-icon{font-size:2rem;margin-bottom:8px;}
+.drop-zone-text{font-size:.82rem;color:var(--text2);line-height:1.5;}
+.drop-zone-text strong{color:var(--text);}
+.ref-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.ref-chip{background:var(--surface3);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.72rem;display:flex;align-items:center;gap:6px;}
+.ref-chip .chip-icon{font-size:.85rem;}
+.ref-chip .chip-name{color:var(--text);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ref-chip .chip-del{color:var(--text2);cursor:pointer;font-size:.9rem;line-height:1;}
+.ref-chip .chip-del:hover{color:var(--red);}
+.ref-preview{background:#0d0f1a;border-radius:7px;padding:12px;font-size:.77rem;color:var(--text2);line-height:1.6;max-height:120px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;}
+.ref-stats{display:flex;gap:12px;font-size:.72rem;color:var(--text2);}
+.ref-stat strong{color:var(--accent3);}
+
+/* ── Step Cards ── */
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.step-header{padding:14px 18px;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none;transition:background .15s;}
+.step-header:hover{background:var(--surface2);}
+.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;}
+.step-info{flex:1;}
+.step-name{font-size:.9rem;font-weight:600;}
+.step-desc{font-size:.72rem;color:var(--text2);margin-top:2px;}
+.step-status{font-size:.69rem;padding:3px 9px;border-radius:10px;font-weight:700;}
+.s-idle{background:#22243a;color:var(--text2);}
+.s-gen{background:#1e2a4a;color:var(--blue);animation:pulse 1.5s infinite;}
+.s-done{background:#1a2d1a;color:var(--green);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+.step-chevron{color:var(--text2);font-size:.75rem;transition:transform .2s;flex-shrink:0;}
+.step-chevron.open{transform:rotate(180deg);}
+.step-body{display:none;padding:0 18px 18px;}
+.step-body.open{display:block;}
+.script-box{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:14px;min-height:100px;font-size:.85rem;line-height:1.75;color:var(--text);white-space:pre-wrap;font-family:inherit;}
+.script-box.empty{color:var(--text2);font-style:italic;}
+.script-box.loading{color:var(--blue);}
+.step-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+
+/* ── Final Script ── */
+.final-card{background:linear-gradient(135deg,#1a1d27,#12162b);border:1px solid var(--accent);border-radius:12px;overflow:hidden;}
+.final-header{background:var(--accent);padding:13px 18px;font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:8px;}
+.final-body{padding:18px;}
+.final-script-box{background:#0d0f1a;border-radius:8px;padding:18px;font-size:.84rem;line-height:1.9;color:var(--text);white-space:pre-wrap;min-height:160px;font-family:inherit;}
+.final-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+
+/* ── 이미지 탭 ── */
+.char-config-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.char-config-header{padding:14px 18px;background:linear-gradient(90deg,#2d1f5a,#1f2d5a);display:flex;align-items:center;gap:10px;}
+.char-config-header span{font-weight:700;font-size:.95rem;}
+.char-config-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.style-presets{display:flex;gap:7px;flex-wrap:wrap;}
+.style-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 13px;font-size:.75rem;cursor:pointer;color:var(--text2);transition:all .15s;}
+.style-btn:hover{border-color:var(--accent);}
+.style-btn.selected{border-color:var(--accent);background:#1e2240;color:var(--accent);font-weight:600;}
+.char-preview-area{background:#0d0f1a;border-radius:8px;padding:12px;display:flex;align-items:center;gap:14px;}
+.char-preview-img{width:80px;height:80px;border-radius:8px;object-fit:cover;background:var(--surface2);border:1px solid var(--border);}
+.char-preview-img.loading-gif{background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+
+/* ── 스토리보드 이미지 섹션 ── */
+.img-all-actions{display:flex;gap:10px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:11px;align-items:center;}
+.img-total-badge{margin-left:auto;background:#1e2240;color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:4px 14px;font-size:.78rem;font-weight:700;}
+.step-img-section{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.step-img-header{padding:11px 16px;display:flex;align-items:center;gap:10px;background:var(--surface2);flex-wrap:wrap;}
+.step-img-name{flex:1;font-size:.88rem;font-weight:600;}
+.count-ctrl{display:flex;align-items:center;gap:5px;font-size:.82rem;}
+.count-btn{width:24px;height:24px;background:var(--surface3);border:1px solid var(--border);border-radius:5px;color:var(--text);cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.count-btn:hover{border-color:var(--accent);color:var(--accent);}
+.count-val{min-width:22px;text-align:center;font-weight:700;color:var(--accent);}
+.step-img-status{font-size:.69rem;padding:3px 9px;border-radius:10px;font-weight:700;}
+/* ── 스트립 (가로 스크롤 스토리보드) ── */
+.img-strip{display:flex;gap:10px;overflow-x:auto;padding:14px;background:#0a0c14;min-height:190px;align-items:flex-start;}
+.img-strip::-webkit-scrollbar{height:4px;}
+.strip-empty{color:var(--text2);font-size:.78rem;margin:auto;font-style:italic;text-align:center;padding:20px;}
+/* ── 썸네일 카드 ── */
+.thumb-card{flex-shrink:0;width:210px;display:flex;flex-direction:column;gap:5px;}
+.thumb-wrap{position:relative;width:210px;height:118px;background:var(--surface2);border-radius:7px;overflow:hidden;border:1px solid var(--border);cursor:pointer;}
+.thumb-wrap:hover{border-color:var(--accent);}
+.thumb-img{width:100%;height:100%;object-fit:cover;display:none;}
+.thumb-img.loaded{display:block;}
+.thumb-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--surface2);}
+.thumb-overlay.hidden{display:none;}
+.css-spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:csspin .75s linear infinite;}
+@keyframes csspin{to{transform:rotate(360deg);}}
+.thumb-num{position:absolute;top:5px;left:6px;background:rgba(0,0,0,.75);color:#fff;font-size:.62rem;padding:2px 6px;border-radius:4px;font-weight:700;}
+.thumb-retry{position:absolute;top:4px;right:4px;background:rgba(255,77,79,.85);color:#fff;font-size:.6rem;padding:2px 6px;border-radius:4px;cursor:pointer;display:none;}
+.thumb-desc{font-size:.67rem;color:var(--text2);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.thumb-actions{display:flex;gap:4px;}
+/* ── 진행 표시줄 ── */
+.strip-progress{height:3px;background:var(--border);overflow:hidden;}
+.strip-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));transition:width .4s;width:0%;}
+
+/* ── Reference Panel ── */
+.ref-panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.ref-panel-tabs{display:flex;border-bottom:1px solid var(--border);}
+.rpt{padding:9px 14px;font-size:.75rem;font-weight:600;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;}
+.rpt.active{color:var(--accent);border-bottom-color:var(--accent);}
+.rpc{padding:14px;display:none;}
+.rpc.active{display:block;}
+.rp-item{background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:9px 13px;margin-bottom:8px;font-size:.8rem;line-height:1.6;}
+.rp-item.r{border-left-color:var(--accent2);}
+.rp-item.g{border-left-color:var(--accent3);}
+.rp-item.y{border-left-color:var(--accent4);}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 15px;font-size:.8rem;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:toastin .3s ease;max-width:280px;}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error{border-left:3px solid var(--red);}
+.toast.info{border-left:3px solid var(--accent);}
+@keyframes toastin{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
+
+/* ── Divider ── */
+hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text2);}
+
+/* ── Key row ── */
+.key-row{display:flex;gap:7px;}
+.key-row input{flex:1;}
+
+/* ── Char count ── */
+.char-count{font-size:.68rem;color:var(--text2);text-align:right;margin-top:2px;}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <div class="header-icon">🎬</div>
+  <div>
+    <div class="header-title">YouTube 대본 생성 대시보드</div>
+    <div class="header-sub">경제학 똑똑 스타일 · 4단계 프레임워크 · 졸라맨 중개사 이미지 자동생성</div>
+  </div>
+  <div class="header-right">
+    <span class="badge-green badge">Pollinations.ai</span>
+    <span class="badge">Claude AI</span>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<div class="layout">
+
+<!-- ═══ LEFT PANEL ═══ -->
+<div class="left">
+  <div class="left-tabs">
+    <div class="ltab active" onclick="switchLTab('settings')">⚙️ 설정</div>
+    <div class="ltab" onclick="switchLTab('reference')">📎 참고자료</div>
+  </div>
+
+  <!-- ── 설정 탭 ── -->
+  <div class="left-content" id="lc-settings">
+
+    <div>
+      <div class="section-title">Claude API</div>
+      <div class="input-group">
+        <label>API Key</label>
+        <div class="key-row">
+          <input type="password" id="apiKey" placeholder="sk-ant-api03-..."/>
+          <button class="btn btn-ghost btn-sm" onclick="toggleKey()">보기</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">주제 입력</div>
+      <div class="input-group">
+        <label>영상 주제 / 키워드</label>
+        <textarea id="topicInput" rows="3" placeholder="예: 2026년 부동산 시장 전망, 달러 투자 전략..."></textarea>
+        <div class="char-count" id="charCount">0자</div>
+      </div>
+      <div class="input-group" style="margin-top:8px;">
+        <label>타깃 시청자</label>
+        <input type="text" id="targetAudience" placeholder="예: 30~40대 직장인, 내 집 마련 고민 중"/>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">후킹 유형</div>
+      <div class="hook-grid" id="hookGrid">
+        <div class="hook-card selected" data-hook="paradox"><div class="hk-icon">💥</div><div class="hk-name">역설 후킹</div><div class="hk-desc">상식 파괴 + 반전 데이터</div></div>
+        <div class="hook-card" data-hook="fear"><div class="hk-icon">⚠️</div><div class="hk-name">공포 후킹</div><div class="hk-desc">생존 본능 + 위기감</div></div>
+        <div class="hook-card" data-hook="story"><div class="hk-icon">👥</div><div class="hk-name">스토리 대조</div><div class="hk-desc">A실패 vs B성공</div></div>
+        <div class="hook-card" data-hook="secret"><div class="hk-icon">🔓</div><div class="hk-name">비밀 폭로</div><div class="hk-desc">권위자 인용 + 비밀</div></div>
+        <div class="hook-card" data-hook="guarantee"><div class="hk-icon">✅</div><div class="hk-name">보장 후킹</div><div class="hk-desc">강한 단언 + 이익</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">위기 고조 전략</div>
+      <div class="tag-row" id="agitTags">
+        <div class="tag selected" data-tag="gap">상대적 박탈감</div>
+        <div class="tag" data-tag="nosafe">안전지대 파괴</div>
+        <div class="tag" data-tag="invisible">보이지 않는 위협</div>
+        <div class="tag" data-tag="oldrule">과거 공식 부정</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">원인 분석 프레임</div>
+      <div class="tag-row" id="analTags">
+        <div class="tag selected" data-tag="inout">내부/외부 분해</div>
+        <div class="tag" data-tag="visual">메커니즘 시각화</div>
+        <div class="tag" data-tag="realculprit">진짜 범인 지목</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">옵션</div>
+      <div class="input-group">
+        <label>대본 길이</label>
+        <select id="scriptLength">
+          <option value="short">짧게 (3~4분)</option>
+          <option value="medium" selected>보통 (7~10분)</option>
+          <option value="long">길게 (12~15분)</option>
+        </select>
+      </div>
+      <div class="input-group" style="margin-top:8px;">
+        <label>분야</label>
+        <select id="fieldType">
+          <option value="realestate">부동산</option>
+          <option value="economy">경제/금융</option>
+          <option value="investment">투자/재테크</option>
+          <option value="startup">창업/사업</option>
+          <option value="general">일반</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="genBtn" onclick="generateAll()">✨ 전체 대본 생성</button>
+    <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+
+  </div><!-- /lc-settings -->
+
+  <!-- ── 참고자료 탭 ── -->
+  <div class="left-content hidden" id="lc-reference">
+
+    <div>
+      <div class="section-title">파일 / 텍스트 첨부</div>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" multiple accept=".txt,.md,.csv,.json,.html,.htm" style="display:none" onchange="handleFiles(this.files)"/>
+        <div class="drop-zone-icon">📂</div>
+        <div class="drop-zone-text"><strong>파일을 드래그하거나 클릭하여 업로드</strong><br>.txt · .md · .csv · .json · .html</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">텍스트 직접 붙여넣기</div>
+      <div class="input-group">
+        <label>뉴스 기사 · 데이터 · 매물정보 등 붙여넣기</label>
+        <textarea id="pasteArea" rows="7" placeholder="여기에 참고할 내용을 붙여넣으세요.&#10;&#10;예: 뉴스 기사, 실거래가 데이터, 매물 정보, 통계 자료 등..."></textarea>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:8px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="addPastedText()">➕ 참고자료에 추가</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pasteArea').value=''">지우기</button>
+      </div>
+    </div>
+
+    <!-- Ref items list -->
+    <div id="refItemsSection" style="display:none;">
+      <div class="section-title">첨부된 참고자료 (<span id="refCount">0</span>개)</div>
+      <div class="ref-chips" id="refChips"></div>
+      <div style="margin-top:10px;">
+        <div class="section-title">미리보기</div>
+        <div class="ref-preview" id="refPreview">참고자료를 선택하면 내용을 미리볼 수 있습니다.</div>
+      </div>
+      <div class="ref-stats" style="margin-top:8px;">
+        <span>총 <strong id="totalChars">0</strong>자</span>
+        <span>토큰 약 <strong id="totalTokens">0</strong>개</span>
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-top:10px;" onclick="clearAllRef()">🗑️ 전체 삭제</button>
+    </div>
+
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:.77rem;color:var(--text2);line-height:1.7;">
+      💡 <strong style="color:var(--text)">참고자료 활용 방법</strong><br>
+      첨부된 자료는 대본 생성 시 Claude에게 자동으로 전달됩니다. 실제 데이터·기사를 넣으면 더 정확하고 구체적인 대본이 나옵니다.
+    </div>
+
+  </div><!-- /lc-reference -->
+</div><!-- /left -->
+
+<!-- ═══ RIGHT PANEL ═══ -->
+<div class="right">
+  <div class="right-tabs">
+    <div class="rtab active" onclick="switchRTab('script')">📝 대본 생성</div>
+    <div class="rtab" onclick="switchRTab('image')">🎨 이미지 생성</div>
+  </div>
+
+  <!-- ── 대본 탭 ── -->
+  <div class="right-content" id="rc-script">
+
+    <!-- Step 1 -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(1)">
+        <div class="step-num" style="background:#3d2d6e;color:#a78bfa;">1</div>
+        <div class="step-info"><div class="step-name">후킹 (Hook)</div><div class="step-desc">0~30초 · 시청자의 뇌를 잡아채는 첫 문장</div></div>
+        <div class="step-status s-idle" id="ss1">대기</div>
+        <div class="step-chevron open" id="sc1">▼</div>
+      </div>
+      <div class="step-body open" id="sb1">
+        <div class="script-box empty" id="so1">주제와 API Key를 입력 후 생성 버튼을 눌러주세요.</div>
+        <div class="step-actions">
+          <button class="btn btn-ghost btn-sm" onclick="genStep(1)">🔄 재생성</button>
+          <button class="btn btn-success btn-sm" onclick="copyStep(1)">📋 복사</button>
+          <button class="btn btn-img btn-sm" onclick="switchRTab('image')">🎨 이미지 생성 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(2)">
+        <div class="step-num" style="background:#3d1e1e;color:#f87171;">2</div>
+        <div class="step-info"><div class="step-name">위기 고조 (Problem Agitation)</div><div class="step-desc">불안 자각 · 숫자 대조 · 공포 확장</div></div>
+        <div class="step-status s-idle" id="ss2">대기</div>
+        <div class="step-chevron" id="sc2">▼</div>
+      </div>
+      <div class="step-body" id="sb2">
+        <div class="script-box empty" id="so2">주제와 API Key를 입력 후 생성 버튼을 눌러주세요.</div>
+        <div class="step-actions">
+          <button class="btn btn-ghost btn-sm" onclick="genStep(2)">🔄 재생성</button>
+          <button class="btn btn-success btn-sm" onclick="copyStep(2)">📋 복사</button>
+          <button class="btn btn-img btn-sm" onclick="switchRTab('image')">🎨 이미지 생성 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(3)">
+        <div class="step-num" style="background:#1e2d3d;color:#60a5fa;">3</div>
+        <div class="step-info"><div class="step-name">원인 분석 (Analysis)</div><div class="step-desc">진짜 원인 · 다차원 분해 · 시각적 비유</div></div>
+        <div class="step-status s-idle" id="ss3">대기</div>
+        <div class="step-chevron" id="sc3">▼</div>
+      </div>
+      <div class="step-body" id="sb3">
+        <div class="script-box empty" id="so3">주제와 API Key를 입력 후 생성 버튼을 눌러주세요.</div>
+        <div class="step-actions">
+          <button class="btn btn-ghost btn-sm" onclick="genStep(3)">🔄 재생성</button>
+          <button class="btn btn-success btn-sm" onclick="copyStep(3)">📋 복사</button>
+          <button class="btn btn-img btn-sm" onclick="switchRTab('image')">🎨 이미지 생성 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(4)">
+        <div class="step-num" style="background:#1a2d1a;color:#4ade80;">4</div>
+        <div class="step-info"><div class="step-name">해결책 (Solution)</div><div class="step-desc">구체적 행동 지침 · 황금 비율 · 철학적 마무리</div></div>
+        <div class="step-status s-idle" id="ss4">대기</div>
+        <div class="step-chevron" id="sc4">▼</div>
+      </div>
+      <div class="step-body" id="sb4">
+        <div class="script-box empty" id="so4">주제와 API Key를 입력 후 생성 버튼을 눌러주세요.</div>
+        <div class="step-actions">
+          <button class="btn btn-ghost btn-sm" onclick="genStep(4)">🔄 재생성</button>
+          <button class="btn btn-success btn-sm" onclick="copyStep(4)">📋 복사</button>
+          <button class="btn btn-img btn-sm" onclick="switchRTab('image')">🎨 이미지 생성 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Final Script -->
+    <div class="final-card">
+      <div class="final-header">📄 완성된 유튜브 대본</div>
+      <div class="final-body">
+        <div class="final-script-box" id="finalScript">각 단계 생성 후 자동으로 완성 대본이 조합됩니다.</div>
+        <div class="final-actions">
+          <button class="btn btn-success btn-sm" onclick="copyFinal()">📋 전체 복사</button>
+          <button class="btn btn-ghost btn-sm" onclick="assembleScript()">🔄 다시 조합</button>
+          <button class="btn btn-ghost btn-sm" onclick="downloadTxt()">💾 TXT 저장</button>
+          <button class="btn btn-img btn-sm" onclick="switchRTab('image')">🎨 이미지 탭으로 이동</button>
+          <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑️ 초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reference Panel -->
+    <div class="ref-panel">
+      <div class="section-title" style="padding:12px 14px 0;">벤치마킹 레퍼런스</div>
+      <div class="ref-panel-tabs">
+        <div class="rpt active" data-rtab="hook" onclick="switchRefTab('hook')">후킹</div>
+        <div class="rpt" data-rtab="agit" onclick="switchRefTab('agit')">위기고조</div>
+        <div class="rpt" data-rtab="anal" onclick="switchRefTab('anal')">원인분석</div>
+        <div class="rpt" data-rtab="sol" onclick="switchRefTab('sol')">해결책</div>
+      </div>
+      <div class="rpc active" id="rp-hook">
+        <div class="rp-item"><strong>💥 역설</strong> — [통념] vs [반전 데이터]<br><em>"사람들이 결혼을 안 한다는데, 결혼정보회사 매출은 2배 폭증"</em></div>
+        <div class="rp-item r"><strong>⚠️ 공포</strong> — [위기 상황] + [당신의 피해]<br><em>"환율 1,460원 시대, 앉아서 내 월급 가치가 삭제"</em></div>
+        <div class="rp-item g"><strong>👥 스토리</strong> — [A 실패] vs [B 성공]<br><em>"영끌 김대리 vs 미국 주식 박과장"</em></div>
+        <div class="rp-item y"><strong>🔓 비밀폭로</strong> — [권위자 행동] + [대중 모르는 비밀]<br><em>"은행이 절대 말 안 해주는 것. 고수는 현금을 예금통장에 안 둔다"</em></div>
+      </div>
+      <div class="rpc" id="rp-agit">
+        <div class="rp-item"><strong>① Gap Strategy</strong> — 내 정체된 소득 vs 폭주하는 자산<br><em>"서울 아파트 40%↑, S&P500 90%↑, 내 월급은?"</em></div>
+        <div class="rp-item r"><strong>② No Safe Zone</strong> — 강해보이는 대상도 무너짐<br><em>"변호사·의사 전문직조차 무너지는데 나는?"</em></div>
+        <div class="rp-item g"><strong>③ 괴물 시각화</strong> — 추상 손실 → 물리적 위협<br><em>"양동이 밑에 구멍이 뚫린 것 = 인플레이션"</em></div>
+        <div class="rp-item y"><strong>④ 과거 공식 부정</strong> — 성실한 저축이 독이 된다<br><em>"저축은 미덕이 아니라 자산을 갉아먹는 행위"</em></div>
+      </div>
+      <div class="rpc" id="rp-anal">
+        <div class="rp-item"><strong>① 내부/외부 분해</strong> — 샌드위치 구조<br><em>환율 급등 = 미국 고금리(외부) + 한국 PF위기(내부)</em></div>
+        <div class="rp-item r"><strong>② 메커니즘 시각화</strong> — 추상 → 물리적 비유<br><em>채권=시소, AI=뇌+고속도로, 금리위기=만성출혈</em></div>
+        <div class="rp-item g"><strong>③ 진짜 범인</strong> — "뉴스는 A라 하지만 진짜는 B"<br><em>자영업 몰락 표면=불경기 / 진짜=회식문화붕괴+인구절벽</em></div>
+      </div>
+      <div class="rpc" id="rp-sol">
+        <div class="rp-item"><strong>① 극도의 구체성</strong> — 상품명·티커·조건까지<br><em>"이름 뒤에 H 없는 순수 S&P500 ETF"</em></div>
+        <div class="rp-item r"><strong>② 황금 비율</strong> — 밀키트 레시피<br><em>"미국 국채50% + 금20% + 성장주20% + 현금10%"</em></div>
+        <div class="rp-item g"><strong>③ 시스템화</strong> — 의지력 → 자동화<br><em>"월급날 강제 선납 50%. 돈이 스스로 움직이게"</em></div>
+        <div class="rp-item y"><strong>④ 철학적 마무리</strong> — 삶의 태도<br><em>"가장 큰 리스크는 아무것도 안 하는 것"</em></div>
+      </div>
+    </div>
+
+  </div><!-- /rc-script -->
+
+  <!-- ── 이미지 탭 ── -->
+  <div class="right-content hidden" id="rc-image">
+
+    <!-- Character Config -->
+    <div class="char-config-card">
+      <div class="char-config-header">
+        <span>🕴️</span>
+        <span>캐릭터 설정 — 졸라맨 중개사</span>
+        <div style="margin-left:auto;font-size:.72rem;color:#c4b5fd;">고정 캐릭터</div>
+      </div>
+      <div class="char-config-body">
+        <div class="input-group">
+          <label>캐릭터 이름</label>
+          <input type="text" id="charName" value="졸라맨 중개사"/>
+        </div>
+        <div class="input-group">
+          <label>캐릭터 기본 프롬프트 (영어, 이미지 생성에 사용)</label>
+          <textarea id="charPrompt" rows="3">stickman agent, suit, house key, line art, white bg</textarea>
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:6px;">이미지 스타일</label>
+          <div class="style-presets" id="stylePresets">
+            <div class="style-btn selected" data-style="black white minimal">흑백 라인</div>
+            <div class="style-btn" data-style="flat color simple">플랫 컬러</div>
+            <div class="style-btn" data-style="pencil sketch rough">스케치</div>
+            <div class="style-btn" data-style="retro comic cartoon">코믹 만화</div>
+          </div>
+        </div>
+        <div class="char-preview-area">
+          <div id="charPreviewWrap" style="flex-shrink:0;">
+            <div id="charPreviewPlaceholder" style="width:80px;height:80px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:2rem;">🕴️</div>
+            <img id="charPreviewImg" class="char-preview-img" style="display:none;width:80px;height:80px;" alt="캐릭터 미리보기"/>
+          </div>
+          <div>
+            <div style="font-size:.78rem;font-weight:600;color:var(--text);" id="charNameDisplay">졸라맨 중개사</div>
+            <div style="font-size:.72rem;color:var(--text2);margin-top:4px;line-height:1.5;">유튜브 썸네일 전용 캐릭터<br>각 대본 단계의 장면을 표현합니다</div>
+            <button class="btn btn-img btn-xs" style="margin-top:8px;" onclick="previewCharacter()">🔍 캐릭터 미리보기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 전체 액션 바 -->
+    <div class="img-all-actions">
+      <button class="btn btn-img" onclick="generateAllImages()" id="genAllImgBtn">🎨 전체 이미지 생성 (전 단계)</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadAllImages()">💾 전체 저장</button>
+      <button class="btn btn-danger btn-sm" onclick="clearAllImages()">🗑️ 초기화</button>
+      <div class="img-total-badge">총 <span id="totalImgCount">0</span>장</div>
+    </div>
+
+    <!-- ── Step 1: 후킹 ── -->
+    <div class="step-img-section">
+      <div class="step-img-header">
+        <div class="step-num" style="background:#3d2d6e;color:#a78bfa;flex-shrink:0;">1</div>
+        <div class="step-img-name">후킹 장면</div>
+        <div class="count-ctrl">
+          <button class="count-btn" onclick="changeCount(1,-1)">−</button>
+          <span class="count-val" id="countVal1">3</span>장
+          <button class="count-btn" onclick="changeCount(1,1)">+</button>
+        </div>
+        <button class="btn btn-img btn-sm" onclick="generateStepImages(1)">🎨 생성</button>
+        <span class="step-img-status s-idle" id="siStat1">대기</span>
+      </div>
+      <div class="strip-progress"><div class="strip-progress-fill" id="siProg1"></div></div>
+      <div class="img-strip" id="strip1"><div class="strip-empty">💥 대본 생성 후 이미지를 생성하세요</div></div>
+    </div>
+
+    <!-- ── Step 2: 위기고조 ── -->
+    <div class="step-img-section">
+      <div class="step-img-header">
+        <div class="step-num" style="background:#3d1e1e;color:#f87171;flex-shrink:0;">2</div>
+        <div class="step-img-name">위기 고조 장면</div>
+        <div class="count-ctrl">
+          <button class="count-btn" onclick="changeCount(2,-1)">−</button>
+          <span class="count-val" id="countVal2">5</span>장
+          <button class="count-btn" onclick="changeCount(2,1)">+</button>
+        </div>
+        <button class="btn btn-img btn-sm" onclick="generateStepImages(2)">🎨 생성</button>
+        <span class="step-img-status s-idle" id="siStat2">대기</span>
+      </div>
+      <div class="strip-progress"><div class="strip-progress-fill" id="siProg2"></div></div>
+      <div class="img-strip" id="strip2"><div class="strip-empty">⚠️ 대본 생성 후 이미지를 생성하세요</div></div>
+    </div>
+
+    <!-- ── Step 3: 원인분석 ── -->
+    <div class="step-img-section">
+      <div class="step-img-header">
+        <div class="step-num" style="background:#1e2d3d;color:#60a5fa;flex-shrink:0;">3</div>
+        <div class="step-img-name">원인 분석 장면</div>
+        <div class="count-ctrl">
+          <button class="count-btn" onclick="changeCount(3,-1)">−</button>
+          <span class="count-val" id="countVal3">5</span>장
+          <button class="count-btn" onclick="changeCount(3,1)">+</button>
+        </div>
+        <button class="btn btn-img btn-sm" onclick="generateStepImages(3)">🎨 생성</button>
+        <span class="step-img-status s-idle" id="siStat3">대기</span>
+      </div>
+      <div class="strip-progress"><div class="strip-progress-fill" id="siProg3"></div></div>
+      <div class="img-strip" id="strip3"><div class="strip-empty">🔍 대본 생성 후 이미지를 생성하세요</div></div>
+    </div>
+
+    <!-- ── Step 4: 해결책 ── -->
+    <div class="step-img-section">
+      <div class="step-img-header">
+        <div class="step-num" style="background:#1a2d1a;color:#4ade80;flex-shrink:0;">4</div>
+        <div class="step-img-name">해결책 장면</div>
+        <div class="count-ctrl">
+          <button class="count-btn" onclick="changeCount(4,-1)">−</button>
+          <span class="count-val" id="countVal4">4</span>장
+          <button class="count-btn" onclick="changeCount(4,1)">+</button>
+        </div>
+        <button class="btn btn-img btn-sm" onclick="generateStepImages(4)">🎨 생성</button>
+        <span class="step-img-status s-idle" id="siStat4">대기</span>
+      </div>
+      <div class="strip-progress"><div class="strip-progress-fill" id="siProg4"></div></div>
+      <div class="img-strip" id="strip4"><div class="strip-empty">✅ 대본 생성 후 이미지를 생성하세요</div></div>
+    </div>
+
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:.76rem;color:var(--text2);line-height:1.7;">
+      🎨 <strong style="color:var(--text)">스토리보드 이미지 안내</strong><br>
+      ± 버튼으로 단계별 장수 조절 (최소 1장, 최대 10장) · 가로 스크롤로 전체 확인<br>
+      Claude가 대본을 N장 장면으로 분해 → Pollinations.ai 무료 이미지 생성 (장당 10~20초)
+    </div>
+
+  </div><!-- /rc-image -->
+
+</div><!-- /right -->
+</div><!-- /layout -->
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let selectedHook = 'paradox';
+let selectedAgit = new Set(['gap']);
+let selectedAnal = new Set(['inout']);
+let selectedStyle = 'black white minimal';
+let stepOutputs = {1:'',2:'',3:'',4:''};
+// imgUrls 제거됨 — stepImages 로 대체
+let refItems = []; // [{name, content, type}]
+let isGenerating = false;
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+document.getElementById('topicInput').addEventListener('input', function(){
+  document.getElementById('charCount').textContent = this.value.length + '자';
+});
+
+// ── API Key 자동 저장/복원 (localStorage) ──
+(function initApiKey(){
+  const saved = localStorage.getItem('yt_claude_api_key');
+  if(saved){
+    document.getElementById('apiKey').value = saved;
+    showKeySaved(true);
+  }
+})();
+
+document.getElementById('apiKey').addEventListener('input', function(){
+  const v = this.value.trim();
+  if(v.startsWith('sk-ant') && v.length > 20){
+    localStorage.setItem('yt_claude_api_key', v);
+    showKeySaved(true);
+  } else if(!v){
+    localStorage.removeItem('yt_claude_api_key');
+    showKeySaved(false);
+  }
+});
+
+function showKeySaved(saved){
+  let badge = document.getElementById('keySavedBadge');
+  if(!badge){
+    badge = document.createElement('span');
+    badge.id = 'keySavedBadge';
+    badge.style.cssText='font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:4px;';
+    document.querySelector('.key-row').appendChild(badge);
+  }
+  if(saved){
+    badge.textContent='💾 저장됨';
+    badge.style.background='#1a2d1a';
+    badge.style.color='#52c41a';
+    badge.style.border='1px solid #1f4d1f';
+  } else {
+    badge.textContent='';
+  }
+}
+document.getElementById('charName').addEventListener('input', function(){
+  document.getElementById('charNameDisplay').textContent = this.value;
+});
+
+// Hook cards
+document.querySelectorAll('.hook-card').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('.hook-card').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected');
+    selectedHook = c.dataset.hook;
+  });
+});
+
+// Tag multi-select
+document.querySelectorAll('#agitTags .tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    t.classList.toggle('selected');
+    t.classList.contains('selected') ? selectedAgit.add(t.dataset.tag) : selectedAgit.delete(t.dataset.tag);
+  });
+});
+document.querySelectorAll('#analTags .tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    t.classList.toggle('selected');
+    t.classList.contains('selected') ? selectedAnal.add(t.dataset.tag) : selectedAnal.delete(t.dataset.tag);
+  });
+});
+
+// Style presets
+document.querySelectorAll('.style-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.style-btn').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected');
+    selectedStyle = b.dataset.style;
+  });
+});
+
+// Drag & drop
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e=>{e.preventDefault();dropZone.classList.add('drag-over');});
+dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e=>{
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+// ═══════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════
+function switchLTab(tab){
+  document.querySelectorAll('.ltab').forEach((t,i)=>{
+    const id = i===0?'settings':'reference';
+    t.classList.toggle('active', id===tab);
+    document.getElementById('lc-'+id).classList.toggle('hidden', id!==tab);
+  });
+}
+function switchRTab(tab){
+  document.querySelectorAll('.rtab').forEach((t,i)=>{
+    const id = i===0?'script':'image';
+    t.classList.toggle('active', id===tab);
+    document.getElementById('rc-'+id).classList.toggle('hidden', id!==tab);
+  });
+}
+function switchRefTab(tab){
+  document.querySelectorAll('.rpt').forEach(t=>t.classList.toggle('active',t.dataset.rtab===tab));
+  document.querySelectorAll('.rpc').forEach(c=>c.classList.toggle('active',c.id==='rp-'+tab));
+}
+
+// ═══════════════════════════════════════════════
+//  REFERENCE MATERIALS
+// ═══════════════════════════════════════════════
+function handleFiles(files){
+  Array.from(files).forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      addRefItem(file.name, e.target.result, 'file');
+      toast(`"${file.name}" 추가됨`, 'success');
+    };
+    reader.onerror = ()=>toast(`${file.name} 읽기 실패`, 'error');
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+function addPastedText(){
+  const text = document.getElementById('pasteArea').value.trim();
+  if(!text){toast('텍스트를 입력해주세요', 'error');return;}
+  const name = '붙여넣기 ' + new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  addRefItem(name, text, 'paste');
+  document.getElementById('pasteArea').value = '';
+  toast('참고자료 추가됨', 'success');
+}
+
+function addRefItem(name, content, type){
+  refItems.push({name, content, type, id: Date.now()});
+  renderRefItems();
+}
+
+function renderRefItems(){
+  const section = document.getElementById('refItemsSection');
+  const chips = document.getElementById('refChips');
+  const totalChars = refItems.reduce((s,r)=>s+r.content.length, 0);
+
+  section.style.display = refItems.length ? 'block' : 'none';
+  document.getElementById('refCount').textContent = refItems.length;
+  document.getElementById('totalChars').textContent = totalChars.toLocaleString();
+  document.getElementById('totalTokens').textContent = Math.round(totalChars/3).toLocaleString();
+
+  chips.innerHTML = refItems.map(item=>`
+    <div class="ref-chip" onclick="previewRefItem(${item.id})">
+      <span class="chip-icon">${item.type==='file'?'📄':'📋'}</span>
+      <span class="chip-name" title="${item.name}">${item.name}</span>
+      <span class="chip-del" onclick="event.stopPropagation();removeRefItem(${item.id})">✕</span>
+    </div>
+  `).join('');
+}
+
+function previewRefItem(id){
+  const item = refItems.find(r=>r.id===id);
+  if(!item) return;
+  document.getElementById('refPreview').textContent = item.content.slice(0,800) + (item.content.length>800?'\n\n... (이하 생략)':'');
+}
+
+function removeRefItem(id){
+  refItems = refItems.filter(r=>r.id!==id);
+  renderRefItems();
+  toast('삭제됨','info');
+}
+
+function clearAllRef(){
+  refItems = [];
+  renderRefItems();
+  document.getElementById('refPreview').textContent = '참고자료를 선택하면 내용을 미리볼 수 있습니다.';
+  toast('참고자료 전체 삭제','info');
+}
+
+function getRefContent(){
+  if(!refItems.length) return '';
+  return refItems.map((r,i)=>`[참고자료 ${i+1}: ${r.name}]\n${r.content}`).join('\n\n---\n\n');
+}
+
+// ═══════════════════════════════════════════════
+//  MISC UI
+// ═══════════════════════════════════════════════
+function toggleKey(){
+  const inp = document.getElementById('apiKey');
+  inp.type = inp.type==='password'?'text':'password';
+}
+
+function toggleStep(n){
+  document.getElementById('sb'+n).classList.toggle('open');
+  document.getElementById('sc'+n).classList.toggle('open');
+}
+
+function toast(msg, type='info'){
+  const w = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  w.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
+
+function setStepStatus(n, status){
+  const el = document.getElementById('ss'+n);
+  el.className = 'step-status';
+  if(status==='idle'){el.classList.add('s-idle');el.textContent='대기';}
+  else if(status==='gen'){el.classList.add('s-gen');el.textContent='생성 중...';}
+  else if(status==='done'){el.classList.add('s-done');el.textContent='완료';}
+}
+
+function setStepOutput(n, text, empty=false){
+  const el = document.getElementById('so'+n);
+  el.textContent = text;
+  el.className = 'script-box' + (empty?' empty':'') + (text==='생성 중...'?' loading':'');
+}
+
+// ═══════════════════════════════════════════════
+//  CLAUDE API
+// ═══════════════════════════════════════════════
+async function callClaude(system, user, apiKey, maxTokens=2500){
+  const resp = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      system,
+      messages:[{role:'user',content:user}]
+    })
+  });
+  if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||`HTTP ${resp.status}`);}
+  return (await resp.json()).content[0].text;
+}
+
+// ═══════════════════════════════════════════════
+//  PROMPT BUILDERS
+// ═══════════════════════════════════════════════
+const HOOK_LABELS = {
+  paradox:'역설 후킹 — 상식 파괴+반전 데이터',
+  fear:'공포 후킹 — 생존 본능+위기감 조성',
+  story:'스토리 대조 — A실패 vs B성공',
+  secret:'비밀 폭로 — 권위자 인용+비밀 공개',
+  guarantee:'강력한 단언·보장 후킹'
+};
+const AGIT_LABELS = {
+  gap:'상대적 박탈감 수치화(Gap Strategy)',
+  nosafe:'안전지대 파괴(No Safe Zone)',
+  invisible:'보이지 않는 괴물 시각화',
+  oldrule:'과거 성공 공식 부정'
+};
+const ANAL_LABELS = {
+  inout:'내부/외부 요인 분해',
+  visual:'물리적 메커니즘 시각화',
+  realculprit:'진짜 범인 지목하기'
+};
+const LEN_MAP = {short:'3~4분(900~1100자)',medium:'7~10분(2000~2500자)',long:'12~15분(3200~4000자)'};
+const FIELD_MAP = {realestate:'부동산·아파트',economy:'경제·금융',investment:'투자·재테크',startup:'창업·사업',general:'일반 경제'};
+
+function getSysPrompt(){
+  return `당신은 구독자 100만 명을 보유한 경제 유튜브 채널 '경제학 똑똑'의 메인 작가이자 진행자입니다.
+
+[페르소나]
+- 냉철한 분석가 + 뜨거운 멘토
+- 모호한 표현 절대 금지: "확신합니다", "단언컨대", "이것은 명백한 신호입니다" 사용
+- 감정을 실어 호소력 있게 전달
+
+[필수 규칙]
+1. 구체적인 숫자(통계, 수익률, 연도) 반드시 포함
+2. 어려운 경제 용어는 초등학생도 이해할 수 있는 비유로 치환
+3. "당신의 잘못이 아닙니다. 구조의 문제입니다" — 시청자 죄책감 해소
+4. 전문 용어 나열 금지, 건조한 앵커 톤 금지
+5. 실제 말하는 대본 형식으로 작성 (지문·설명 없이 순수 대사)
+6. 참고자료가 있으면 그 안의 구체적인 데이터·사실을 대본에 적극 활용할 것`;
+}
+
+function buildPrompt(step, topic, audience, length, field){
+  const ref = getRefContent();
+  const refSection = ref ? `\n\n[참고자료 — 반드시 활용하세요]\n${ref.slice(0,4000)}\n\n---\n\n` : '';
+  const hookLabel = HOOK_LABELS[selectedHook];
+  const agitLabels = [...selectedAgit].map(k=>AGIT_LABELS[k]).join(', ');
+  const analLabels = [...selectedAnal].map(k=>ANAL_LABELS[k]).join(', ');
+
+  const parts = {
+    1:`${refSection}주제: ${topic}
+타깃 시청자: ${audience||'30~40대 직장인'}
+분야: ${FIELD_MAP[field]}
+후킹 유형: ${hookLabel}
+대본 길이: ${LEN_MAP[length]}의 후킹 파트 (전체의 약 15%)
+
+[후킹 파트 작성 지침]
+- 선택한 후킹 유형(${hookLabel})의 패턴을 명확히 적용
+- 시청자가 알고 있는 상식을 정면 반박하거나 지금 당장 손해를 보고 있다는 위기감 조성
+- 필수 패턴: "여러분, 혹시 이런 생각 해보신 적 있으신가요?", "지금 당신의 돈이 녹아내리고 있습니다."
+- 첫 문장에서 강력한 충격을 줄 것 — 시청자가 영상을 끄지 못하도록
+- 참고자료의 실제 데이터 활용 필수`,
+
+    2:`${refSection}주제: ${topic}
+타깃 시청자: ${audience||'30~40대 직장인'}
+분야: ${FIELD_MAP[field]}
+위기 고조 전략: ${agitLabels}
+대본 길이: ${LEN_MAP[length]}의 위기고조 파트 (전체의 약 30%)
+
+[위기 고조 파트 작성 지침]
+- 선택한 전략(${agitLabels})을 모두 적용
+- 구체적인 숫자 대조 필수 (예: 연봉 3% 인상 vs 대출 이자 50% 폭등)
+- 보이지 않는 손실을 물리적 감각(녹는다, 새어나간다, 터진다)으로 표현
+- "당신이 게으른 게 아니라 시스템이 당신을 가난하게 만들고 있다"는 메시지
+- 참고자료의 구체적 수치를 대조 자료로 사용`,
+
+    3:`${refSection}주제: ${topic}
+타깃 시청자: ${audience||'30~40대 직장인'}
+분야: ${FIELD_MAP[field]}
+분석 프레임: ${analLabels}
+대본 길이: ${LEN_MAP[length]}의 원인분석 파트 (전체의 약 30%)
+
+[원인 분석 파트 작성 지침]
+- 선택한 프레임(${analLabels}) 적용
+- "표면적 원인 부정 → 진짜 구조적 원인 제시" 패턴
+- 반전 접속사 활용: "그런데 도대체 왜 이런 일이 벌어지는 걸까요?", "하지만 여기에 충격적인 진실이 숨어 있습니다."
+- 추상 개념을 물리적 비유(시소, 댐, 혈관, 공장)로 설명
+- 참고자료의 인과 관계를 분석에 활용`,
+
+    4:`${refSection}주제: ${topic}
+타깃 시청자: ${audience||'30~40대 직장인'}
+분야: ${FIELD_MAP[field]}
+대본 길이: ${LEN_MAP[length]}의 해결책 파트 (전체의 약 25%)
+
+[해결책 파트 작성 지침]
+- 추상적 조언 금지 — "지금 당장 앱을 켜서 확인하세요" 수준의 구체적 행동 지침
+- "이 상황이라면 A, 저 상황이라면 B" — 명확한 선택지 제시
+- 황금 비율 제시 (예: 30% + 50% + 20%)
+- 시스템화 강조: "당신의 의지력을 믿지 마세요. 자동화 설정 하나로 끝내세요."
+- 마지막은 철학적 동기부여로 마무리: "오늘의 이 선택이 당신의 10년 후를 바꿀 것입니다."
+- 자연스럽게 구독/좋아요 유도 멘트 포함
+- 참고자료의 구체적 상품/방법 활용`
+  };
+
+  return parts[step];
+}
+
+// ═══════════════════════════════════════════════
+//  SCRIPT GENERATION
+// ═══════════════════════════════════════════════
+async function genStep(n){
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const topic = document.getElementById('topicInput').value.trim();
+  if(!apiKey){toast('Claude API Key를 입력해주세요','error');return;}
+  if(!topic){toast('영상 주제를 입력해주세요','error');return;}
+
+  document.getElementById('sb'+n).classList.add('open');
+  document.getElementById('sc'+n).classList.add('open');
+  setStepStatus(n,'gen');
+  setStepOutput(n,'생성 중...');
+
+  try{
+    const result = await callClaude(
+      getSysPrompt(),
+      buildPrompt(n, topic,
+        document.getElementById('targetAudience').value.trim(),
+        document.getElementById('scriptLength').value,
+        document.getElementById('fieldType').value
+      ),
+      apiKey
+    );
+    stepOutputs[n] = result;
+    setStepOutput(n, result);
+    setStepStatus(n,'done');
+    toast(`Step ${n} 생성 완료!`,'success');
+  }catch(e){
+    setStepOutput(n, `오류: ${e.message}`, true);
+    setStepStatus(n,'idle');
+    toast(`오류: ${e.message}`,'error');
+  }
+}
+
+async function generateAll(){
+  if(isGenerating) return;
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const topic = document.getElementById('topicInput').value.trim();
+  if(!apiKey){toast('Claude API Key를 입력해주세요','error');return;}
+  if(!topic){toast('영상 주제를 입력해주세요','error');return;}
+
+  isGenerating = true;
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 생성 중...';
+  const prog = document.getElementById('progFill');
+
+  for(let i=1;i<=4;i++){
+    setStepStatus(i,'idle');
+    setStepOutput(i,'대기 중...',true);
+    stepOutputs[i]='';
+    document.getElementById('sb'+i).classList.add('open');
+    document.getElementById('sc'+i).classList.add('open');
+  }
+  document.getElementById('finalScript').textContent='각 단계 생성 후 자동으로 완성 대본이 조합됩니다.';
+
+  const audience = document.getElementById('targetAudience').value.trim();
+  const length = document.getElementById('scriptLength').value;
+  const field = document.getElementById('fieldType').value;
+
+  for(let n=1;n<=4;n++){
+    setStepStatus(n,'gen');
+    setStepOutput(n,'생성 중...');
+    prog.style.width = `${(n-1)*25}%`;
+
+    try{
+      const result = await callClaude(getSysPrompt(), buildPrompt(n,topic,audience,length,field), apiKey);
+      stepOutputs[n]=result;
+      setStepOutput(n,result);
+      setStepStatus(n,'done');
+      prog.style.width = `${n*25}%`;
+      toast(`Step ${n} 완료!`,'success');
+    }catch(e){
+      setStepOutput(n,`오류: ${e.message}`,true);
+      setStepStatus(n,'idle');
+      toast(`Step ${n} 오류: ${e.message}`,'error');
+      break;
+    }
+    if(n<4) await new Promise(r=>setTimeout(r,600));
+  }
+
+  assembleScript();
+  btn.disabled=false;
+  btn.innerHTML='✨ 전체 대본 생성';
+  isGenerating=false;
+  setTimeout(()=>prog.style.width='0%',2000);
+}
+
+function assembleScript(){
+  const topic = document.getElementById('topicInput').value.trim();
+  const labels = ['','[ 1단계: 후킹 (Hook) ]','[ 2단계: 위기 고조 ]','[ 3단계: 원인 분석 ]','[ 4단계: 해결책 ]'];
+  let parts = [];
+  if(topic) parts.push(`■ 주제: ${topic}\n${'─'.repeat(50)}\n`);
+  for(let i=1;i<=4;i++) if(stepOutputs[i]) parts.push(`${labels[i]}\n\n${stepOutputs[i]}`);
+  if(parts.length<=1){document.getElementById('finalScript').textContent='각 단계 생성 후 자동으로 완성 대본이 조합됩니다.';return;}
+  document.getElementById('finalScript').textContent = parts.join('\n\n'+'─'.repeat(50)+'\n\n');
+}
+
+function copyStep(n){
+  if(!stepOutputs[n]){toast('생성된 내용이 없습니다','error');return;}
+  navigator.clipboard.writeText(stepOutputs[n]).then(()=>toast('복사됨!','success'));
+}
+
+function copyFinal(){
+  const t = document.getElementById('finalScript').textContent;
+  if(!t||t.includes('자동으로')){toast('대본이 없습니다','error');return;}
+  navigator.clipboard.writeText(t).then(()=>toast('전체 대본 복사됨!','success'));
+}
+
+function downloadTxt(){
+  const t = document.getElementById('finalScript').textContent;
+  if(!t||t.includes('자동으로')){toast('대본이 없습니다','error');return;}
+  const topic = document.getElementById('topicInput').value.slice(0,20)||'유튜브대본';
+  const blob = new Blob([t],{type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `대본_${topic}_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  toast('저장됨!','success');
+}
+
+function clearAll(){
+  for(let i=1;i<=4;i++){
+    stepOutputs[i]='';
+    setStepOutput(i,'주제를 입력하고 생성 버튼을 눌러주세요.',true);
+    setStepStatus(i,'idle');
+  }
+  document.getElementById('finalScript').textContent='각 단계 생성 후 자동으로 완성 대본이 조합됩니다.';
+  document.getElementById('topicInput').value='';
+  document.getElementById('charCount').textContent='0자';
+  toast('초기화 완료','info');
+}
+
+// ═══════════════════════════════════════════════
+//  IMAGE GENERATION — 스토리보드 방식
+// ═══════════════════════════════════════════════
+const SCENE_FALLBACKS = {
+  1:['shocked stickman, question mark','stickman alarmed, data chart','dramatic stickman, crisis reveal'],
+  2:['worried stickman, falling coins','stickman stressed, warning signs','stickman trapped, money drain','stickman vs giant monster','stickman crying, empty wallet'],
+  3:['stickman at whiteboard, arrows','stickman pointing culprit','stickman explains mechanism','inside outside analysis','stickman vs system diagram'],
+  4:['stickman thumbs up, solution','stickman checklist, house key','stickman confident, golden path','stickman celebrates success']
+};
+const IMG_LABELS = {1:'후킹',2:'위기고조',3:'원인분석',4:'해결책'};
+
+// 단계별 이미지 데이터: {url, prompt, loaded}
+let stepImages = {1:[],2:[],3:[],4:[]};
+// 단계별 장수 설정
+let imgCounts = {1:3,2:5,3:5,4:4};
+
+// ── 장수 조절 ──
+function changeCount(n, delta){
+  imgCounts[n] = Math.max(1, Math.min(10, imgCounts[n] + delta));
+  document.getElementById('countVal'+n).textContent = imgCounts[n];
+}
+
+// ── 상태 표시 ──
+function setSiStatus(n, status){
+  const el = document.getElementById('siStat'+n);
+  el.className = 'step-img-status';
+  if(status==='idle'){el.classList.add('s-idle');el.textContent='대기';}
+  else if(status==='gen'){el.classList.add('s-gen');el.textContent='생성 중...';}
+  else if(status==='done'){el.classList.add('s-done');el.textContent='완료';}
+}
+
+function setStripProgress(n, pct){
+  document.getElementById('siProg'+n).style.width = pct+'%';
+}
+
+function updateTotalCount(){
+  const total = Object.values(stepImages).reduce((s,arr)=>s+arr.filter(x=>x.url).length, 0);
+  document.getElementById('totalImgCount').textContent = total;
+}
+
+// ── Claude로 N개 장면 설명 생성 ──
+async function getScenePrompts(n, count, apiKey){
+  const fallbacks = SCENE_FALLBACKS[n];
+  if(!stepOutputs[n] || !apiKey){
+    return Array(count).fill(0).map((_,i)=> fallbacks[i % fallbacks.length]);
+  }
+  try{
+    const result = await callClaude(
+      `Break the script into exactly ${count} visual scenes for a stickman character. Output ONLY lines like: 1|5 english words. Nothing else.`,
+      `Section: ${IMG_LABELS[n]}\n${stepOutputs[n].slice(0,700)}`,
+      apiKey,
+      count * 25 + 30
+    );
+    const lines = result.trim().split('\n')
+      .map(l=>{ const p=l.indexOf('|'); return p>-1 ? l.slice(p+1).trim().slice(0,45) : ''; })
+      .filter(Boolean);
+    // 부족하면 fallback으로 채움
+    while(lines.length < count) lines.push(fallbacks[lines.length % fallbacks.length]);
+    return lines.slice(0, count);
+  }catch{
+    return Array(count).fill(0).map((_,i)=> fallbacks[i % fallbacks.length]);
+  }
+}
+
+// ── 스트립 렌더링 ──
+function renderStrip(n){
+  const strip = document.getElementById('strip'+n);
+  if(!strip) return;
+  if(!stepImages[n].length){
+    strip.innerHTML = `<div class="strip-empty">${['💥','⚠️','🔍','✅'][n-1]} 대본 생성 후 이미지를 생성하세요</div>`;
+    return;
+  }
+  strip.innerHTML = stepImages[n].map((img,i)=>`
+    <div class="thumb-card" id="tc_${n}_${i}">
+      <div class="thumb-wrap" onclick="openThumb('${img.url}')">
+        <img class="thumb-img${img.loaded?' loaded':''}" id="timg_${n}_${i}"
+           ${img.loaded ? `src="${img.url}"` : ''} alt=""/>
+        <div class="thumb-overlay${img.loaded?' hidden':''}" id="tov_${n}_${i}">
+          ${img.url
+            ? `<div class="css-spinner"></div><span style="font-size:.65rem;color:var(--text2)">대기</span>`
+            : `<span style="font-size:1.4rem">${['💥','⚠️','🔍','✅'][n-1]}</span><span style="font-size:.65rem;color:var(--text2)">대기</span>`
+          }
+        </div>
+        <div class="thumb-num">${i+1}</div>
+        ${img.url ? `<span class="thumb-retry" id="tret_${n}_${i}" onclick="event.stopPropagation();regenThumb(${n},${i})">재시도</span>` : ''}
+      </div>
+      <div class="thumb-desc">${img.prompt||''}</div>
+      <div class="thumb-actions">
+        ${img.url ? `
+          <a class="btn btn-ghost btn-xs" href="${img.url}" target="_blank">🔗</a>
+          <a class="btn btn-success btn-xs" href="${img.url}" download="scene_${n}_${i+1}.jpg" target="_blank">💾</a>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function onThumbLoad(n,i){
+  stepImages[n][i].loaded = true;
+  const img = document.getElementById(`timg_${n}_${i}`);
+  const ov  = document.getElementById(`tov_${n}_${i}`);
+  if(img) img.classList.add('loaded');
+  if(ov)  ov.classList.add('hidden');
+  const ret = document.getElementById(`tret_${n}_${i}`);
+  if(ret) ret.style.display='none';
+  updateTotalCount();
+}
+
+function onThumbError(n,i){
+  const ov  = document.getElementById(`tov_${n}_${i}`);
+  const ret = document.getElementById(`tret_${n}_${i}`);
+  if(ov)  ov.innerHTML = `<span style="font-size:1rem">❌</span><span style="font-size:.62rem;color:var(--red)">실패</span>`;
+  if(ret) ret.style.display='block';
+}
+
+async function regenThumb(n,i){
+  if(!document.getElementById('apiKey').value.trim()){ toast('API Key 필요','error'); return; }
+  const scene = stepImages[n][i]?.prompt || SCENE_FALLBACKS[n][0];
+  const url = buildThumbUrl(n, i, scene, Math.floor(Math.random()*999));
+  stepImages[n][i].url = url;
+  stepImages[n][i].loaded = false;
+  setThumbLoading(n, i);
+  await loadThumbWithRetry(n, i, url);
+}
+
+function openThumb(url){
+  if(url) window.open(url,'_blank');
+}
+
+// ── 이미지 URL 빌드 ──
+function buildThumbUrl(n, i, scene, extraSeed=0){
+  const charBase = document.getElementById('charPrompt').value.trim().slice(0,50);
+  const styleShort = selectedStyle.split(',')[0].trim().slice(0,20);
+  const combined = `${charBase}, ${scene}, ${styleShort}`.slice(0,120);
+  const seed = 7777 + n*100 + i*17 + extraSeed;
+  // flux-schnell: 빠르고 안정적인 모델
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(combined)}?width=512&height=288&seed=${seed}&model=flux-schnell&nologo=true`;
+}
+
+// ── 썸네일 로딩 상태 표시 ──
+function setThumbLoading(n, i){
+  const ov = document.getElementById(`tov_${n}_${i}`);
+  if(ov){ ov.classList.remove('hidden'); ov.innerHTML=`<div class="css-spinner"></div><span style="font-size:.63rem;color:var(--text2)">생성 중</span>`; }
+  const ret = document.getElementById(`tret_${n}_${i}`);
+  if(ret) ret.style.display='none';
+}
+
+// ── 이미지 1장: 최대 maxTry회 재시도, 완료까지 대기 ──
+function loadThumbWithRetry(n, i, url, maxTry=4){
+  return new Promise(resolve=>{
+    let attempt=0;
+    const tryLoad=()=>{
+      attempt++;
+      const imgEl = document.getElementById(`timg_${n}_${i}`);
+      if(!imgEl){ resolve(); return; }
+
+      imgEl.onload = null; imgEl.onerror = null;
+
+      // flux-schnell은 보통 10~20초, 여유있게 45초
+      const timer = setTimeout(()=>{
+        imgEl.src='';
+        if(attempt < maxTry){
+          const delay = 3000 * attempt;
+          toast(`장면 ${i+1} 타임아웃 → ${delay/1000}초 후 재시도 (${attempt}/${maxTry})`,'info');
+          setTimeout(tryLoad, delay);
+        } else { onThumbError(n,i); resolve(); }
+      }, 45000);
+
+      imgEl.onload=()=>{ clearTimeout(timer); onThumbLoad(n,i); resolve(); };
+      imgEl.onerror=()=>{
+        clearTimeout(timer);
+        if(attempt < maxTry){
+          const delay = 2500 * attempt;
+          toast(`장면 ${i+1} 재시도 중 (${attempt}/${maxTry})`,'info');
+          // 새 seed로 재요청
+          url = buildThumbUrl(n, i, stepImages[n][i]?.prompt || '', attempt*31);
+          setTimeout(tryLoad, delay);
+        } else { onThumbError(n,i); resolve(); }
+      };
+      imgEl.src = url;
+    };
+    tryLoad();
+  });
+}
+
+// ── 단계별 이미지 생성 (진짜 순차) ──
+async function generateStepImages(n){
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if(!apiKey){ toast('API Key가 필요합니다','error'); return; }
+  const count = imgCounts[n];
+
+  setSiStatus(n,'gen');
+  setStripProgress(n,0);
+  toast(`Step ${n}: 장면 ${count}개 분석 중...`,'info');
+
+  // 1. Claude로 장면 설명 일괄 받기
+  const scenes = await getScenePrompts(n, count, apiKey);
+
+  // 2. 슬롯 초기화 → 한 번만 렌더 (src 없이)
+  stepImages[n] = scenes.map(prompt=>({prompt, url:'', loaded:false}));
+  renderStrip(n);
+
+  // 3. 이미지를 한 장씩 순서대로 완료 후 다음 시작
+  for(let i=0; i<count; i++){
+    const url = buildThumbUrl(n, i, scenes[i]);
+    stepImages[n][i].url = url;
+
+    // 로딩 스피너 표시 (DOM 이미 존재)
+    setThumbLoading(n, i);
+
+    // 이 이미지가 완전히 끝날 때까지 대기 (성공 or 최종 실패)
+    await loadThumbWithRetry(n, i, url);
+
+    setStripProgress(n, Math.round((i+1)/count*100));
+    // 다음 요청 전 짧은 간격
+    if(i < count-1) await new Promise(r=>setTimeout(r, 400));
+  }
+
+  setSiStatus(n,'done');
+  toast(`Step ${n} 이미지 ${count}장 완료!`,'success');
+  setTimeout(()=>setStripProgress(n,0), 1500);
+}
+
+// ── 전체 생성 ──
+async function generateAllImages(){
+  for(let n=1;n<=4;n++){
+    await generateStepImages(n);
+    if(n<4) await new Promise(r=>setTimeout(r,600));
+  }
+  toast('전체 이미지 생성 완료!','success');
+}
+
+// ── 캐릭터 미리보기 ──
+function previewCharacter(){
+  const charPrompt = document.getElementById('charPrompt').value.trim().slice(0,50);
+  const styleShort = selectedStyle.split(',')[0].trim().slice(0,20);
+  const fullPrompt = `${charPrompt}, standing, ${styleShort}`.slice(0,100);
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=200&height=200&seed=9999&nologo=true`;
+  const img = document.getElementById('charPreviewImg');
+  const ph  = document.getElementById('charPreviewPlaceholder');
+  ph.textContent='⏳'; ph.style.display='flex'; img.style.display='none';
+  img.onload=()=>{ ph.style.display='none'; img.style.display='block'; toast('캐릭터 미리보기 완료!','success'); };
+  img.onerror=()=>{ ph.textContent='❌'; toast('미리보기 실패','error'); };
+  img.src=url;
+}
+
+// ── 전체 저장 ──
+async function downloadAllImages(){
+  let count=0;
+  for(let n=1;n<=4;n++){
+    for(let i=0;i<stepImages[n].length;i++){
+      const img = stepImages[n][i];
+      if(img.url && img.loaded){
+        await new Promise(r=>setTimeout(r,300));
+        const a=document.createElement('a');
+        a.href=img.url; a.target='_blank';
+        a.download=`졸라맨_step${n}_${i+1}.jpg`;
+        a.click(); count++;
+      }
+    }
+  }
+  toast(count ? `${count}장 저장 시작`:'저장할 이미지 없음', count?'success':'error');
+}
+
+// ── 초기화 ──
+function clearAllImages(){
+  for(let n=1;n<=4;n++){
+    stepImages[n]=[];
+    setSiStatus(n,'idle');
+    setStripProgress(n,0);
+    renderStrip(n);
+  }
+  updateTotalCount();
+  toast('이미지 초기화','info');
+}
+</script>
+</body>
+</html>
