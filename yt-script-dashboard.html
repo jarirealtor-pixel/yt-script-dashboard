@@ -265,6 +265,14 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
           <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com</a> → Get API key
         </div>
       </div>
+      <div class="input-group" style="margin-top:8px;">
+        <label>이미지 생성 모델</label>
+        <select id="geminiModel">
+          <option value="gemini-2.0-flash-exp-image-generation">gemini-2.0-flash-exp (무료·기본)</option>
+          <option value="imagen-3.0-fast-generate-001">Imagen 3 Fast (유료·빠름)</option>
+          <option value="imagen-3.0-generate-001">Imagen 3 Standard (유료·고품질)</option>
+        </select>
+      </div>
     </div>
 
     <div>
@@ -1311,29 +1319,52 @@ function openThumb(n, i){
   if(w) w.document.write(`<!DOCTYPE html><html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${url}" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>`);
 }
 
-// ── Gemini 이미지 생성 API 호출 (gemini-2.0-flash-preview-image-generation) ──
+// ── Gemini / Imagen 이미지 생성 (모델 자동 분기) ──
 async function callImagenAPI(prompt, geminiKey){
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${geminiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
-      })
-    }
-  );
+  const model = document.getElementById('geminiModel').value;
+  const isImagen = model.startsWith('imagen-');
+  const base = 'https://generativelanguage.googleapis.com/v1beta/models/';
+
+  let url, body;
+  if(isImagen){
+    // Imagen 3: :predict 엔드포인트
+    url = `${base}${model}:predict?key=${geminiKey}`;
+    body = JSON.stringify({
+      instances: [{ prompt }],
+      parameters: { sampleCount: 1, aspectRatio: '16:9' }
+    });
+  } else {
+    // Gemini Flash: :generateContent 엔드포인트
+    url = `${base}${model}:generateContent?key=${geminiKey}`;
+    body = JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseModalities: ['IMAGE'] }
+    });
+  }
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body
+  });
+
   if(!resp.ok){
     const e = await resp.json().catch(()=>({error:{message:`HTTP ${resp.status}`}}));
     throw new Error(e.error?.message || `HTTP ${resp.status}`);
   }
+
   const data = await resp.json();
-  const parts = data.candidates?.[0]?.content?.parts || [];
-  const imgPart = parts.find(p => p.inlineData?.data);
-  if(!imgPart) throw new Error('이미지 없음 — 안전필터 또는 모델 응답 없음');
-  const { mimeType, data: b64 } = imgPart.inlineData;
-  return `data:${mimeType || 'image/png'};base64,${b64}`;
+
+  if(isImagen){
+    const pred = data.predictions?.[0];
+    if(!pred?.bytesBase64Encoded) throw new Error('이미지 데이터 없음 (Imagen)');
+    return `data:${pred.mimeType||'image/png'};base64,${pred.bytesBase64Encoded}`;
+  } else {
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    const imgPart = parts.find(p => p.inlineData?.data);
+    if(!imgPart) throw new Error('이미지 없음 — 안전필터 또는 모델 미지원');
+    return `data:${imgPart.inlineData.mimeType||'image/png'};base64,${imgPart.inlineData.data}`;
+  }
 }
 
 // ── 이미지 프롬프트 빌드 (길이 제한 없음) ──
