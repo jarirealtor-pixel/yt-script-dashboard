@@ -222,7 +222,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
     <div class="header-sub">경제학 똑똑 스타일 · 4단계 프레임워크 · 졸라맨 중개사 이미지 자동생성</div>
   </div>
   <div class="header-right">
-    <span class="badge-green badge">FLUX · HuggingFace</span>
+    <span class="badge-green badge" id="imgProviderBadge">DALL-E 3</span>
     <span class="badge">Claude AI</span>
   </div>
 </div>
@@ -254,24 +254,56 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
     </div>
 
     <div>
-      <div class="section-title">HuggingFace API (이미지 생성 · FLUX)</div>
-      <div class="input-group">
-        <label>API Token <span style="color:var(--accent3);font-size:.7rem;">★ 이미지 생성 필수 (무료)</span></label>
-        <div class="key-row">
-          <input type="password" id="geminiApiKey" placeholder="hf_..."/>
-          <button class="btn btn-ghost btn-sm" onclick="toggleGeminiKey()">보기</button>
+      <div class="section-title">이미지 생성 서비스</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button class="btn btn-ghost btn-sm" id="provBtnDALLE" onclick="setImgProvider('dalle')" style="flex:1;">⭐ DALL-E 3 (유료·최고품질)</button>
+        <button class="btn btn-ghost btn-sm" id="provBtnHF" onclick="setImgProvider('hf')" style="flex:1;">🆓 FLUX (무료)</button>
+      </div>
+
+      <!-- DALL-E 3 -->
+      <div id="imgProvDALLE">
+        <div class="input-group">
+          <label>OpenAI API Key <span style="color:var(--accent3);font-size:.7rem;">★ 필수</span></label>
+          <div class="key-row">
+            <input type="password" id="dalleKey" placeholder="sk-..."/>
+            <button class="btn btn-ghost btn-sm" onclick="toggleImgKey('dalleKey')">보기</button>
+          </div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:3px;">
+            <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent);">platform.openai.com/api-keys</a>
+          </div>
         </div>
-        <div style="font-size:.7rem;color:var(--text2);margin-top:4px;">
-          <a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--accent);">huggingface.co/settings/tokens</a> → New token → Read 선택
+        <div class="input-group" style="margin-top:8px;">
+          <label>품질</label>
+          <select id="dalleQuality">
+            <option value="standard">Standard (₩55/장 · 17장≈₩935)</option>
+            <option value="hd">HD (₩110/장 · 17장≈₩1,870)</option>
+          </select>
+        </div>
+        <div style="background:#1a2a1a;border-radius:6px;padding:8px 10px;font-size:.7rem;color:var(--accent3);margin-top:8px;line-height:1.6;">
+          ✨ 졸라맨 스타일 지시를 가장 정확히 따름<br>일관된 캐릭터 표현으로 최고 품질
         </div>
       </div>
-      <div class="input-group" style="margin-top:8px;">
-        <label>이미지 모델</label>
-        <select id="geminiModel">
-          <option value="black-forest-labs/FLUX.1-schnell">FLUX.1-schnell (무료·빠름·기본)</option>
-          <option value="black-forest-labs/FLUX.1-dev">FLUX.1-dev (무료·고품질)</option>
-          <option value="stabilityai/stable-diffusion-xl-base-1.0">SDXL (무료·안정적)</option>
-        </select>
+
+      <!-- HuggingFace FLUX -->
+      <div id="imgProvHF" style="display:none;">
+        <div class="input-group">
+          <label>HuggingFace Token <span style="color:var(--text2);font-size:.68rem;">(무료 발급)</span></label>
+          <div class="key-row">
+            <input type="password" id="hfToken" placeholder="hf_..."/>
+            <button class="btn btn-ghost btn-sm" onclick="toggleImgKey('hfToken')">보기</button>
+          </div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:3px;">
+            <a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--accent);">huggingface.co/settings/tokens</a> → New token (Read)
+          </div>
+        </div>
+        <div class="input-group" style="margin-top:8px;">
+          <label>모델</label>
+          <select id="hfModel">
+            <option value="black-forest-labs/FLUX.1-schnell">FLUX.1-schnell (빠름·무료)</option>
+            <option value="black-forest-labs/FLUX.1-dev">FLUX.1-dev (고품질·무료)</option>
+            <option value="stabilityai/stable-diffusion-xl-base-1.0">SDXL (안정적·무료)</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -713,41 +745,72 @@ function showKeySaved(saved){
     badge.textContent='';
   }
 }
-// ── Gemini API Key 자동 저장/복원 ──
-(function initGeminiKey(){
-  const saved = localStorage.getItem('yt_hf_api_key');
-  if(saved){ document.getElementById('geminiApiKey').value = saved; showGeminiKeySaved(true); }
-})();
+// ─── 이미지 서비스 프로바이더 ─────────────────────────
+let imgProvider = localStorage.getItem('yt_img_provider') || 'dalle';
 
-document.getElementById('geminiApiKey').addEventListener('input', function(){
-  const v = this.value.trim();
-  if(v.startsWith('hf_') && v.length > 10){
-    localStorage.setItem('yt_hf_api_key', v);
-    showGeminiKeySaved(true);
-  } else if(!v){
-    localStorage.removeItem('yt_hf_api_key');
-    showGeminiKeySaved(false);
-  }
-});
-
-function showGeminiKeySaved(saved){
-  let badge = document.getElementById('geminiKeySavedBadge');
-  if(!badge){
-    badge = document.createElement('span');
-    badge.id = 'geminiKeySavedBadge';
-    badge.style.cssText='font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:4px;';
-    document.getElementById('geminiApiKey').parentElement.appendChild(badge);
-  }
-  badge.textContent = saved ? '💾 저장됨' : '';
-  badge.style.background = '#1a2d1a';
-  badge.style.color = '#52c41a';
-  badge.style.border = saved ? '1px solid #1f4d1f' : 'none';
+function setImgProvider(p){
+  imgProvider = p;
+  localStorage.setItem('yt_img_provider', p);
+  document.getElementById('imgProvDALLE').style.display = p==='dalle' ? 'block' : 'none';
+  document.getElementById('imgProvHF').style.display    = p==='hf'    ? 'block' : 'none';
+  const btnD = document.getElementById('provBtnDALLE');
+  const btnH = document.getElementById('provBtnHF');
+  btnD.style.borderColor = p==='dalle' ? 'var(--accent)'  : '';
+  btnD.style.color       = p==='dalle' ? 'var(--accent)'  : '';
+  btnH.style.borderColor = p==='hf'    ? 'var(--accent3)' : '';
+  btnH.style.color       = p==='hf'    ? 'var(--accent3)' : '';
+  const badge = document.getElementById('imgProviderBadge');
+  if(badge) badge.textContent = p==='dalle' ? 'DALL-E 3' : 'FLUX·HF';
 }
 
-function toggleGeminiKey(){
-  const inp = document.getElementById('geminiApiKey');
+function getImgApiKey(){
+  return imgProvider==='dalle'
+    ? document.getElementById('dalleKey').value.trim()
+    : document.getElementById('hfToken').value.trim();
+}
+
+function toggleImgKey(id){
+  const inp = document.getElementById(id);
   inp.type = inp.type==='password' ? 'text' : 'password';
 }
+
+function showImgKeySaved(inputId, saved){
+  const bid = inputId+'_badge';
+  let badge = document.getElementById(bid);
+  if(!badge){
+    badge = document.createElement('span');
+    badge.id = bid;
+    badge.style.cssText='font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:4px;';
+    document.getElementById(inputId).parentElement.appendChild(badge);
+  }
+  badge.textContent = saved ? '💾 저장됨' : '';
+  badge.style.cssText += ';background:#1a2d1a;color:#52c41a;border:'+(saved?'1px solid #1f4d1f':'none');
+}
+
+// ── DALL-E Key 저장/복원 ──
+(function(){
+  const s = localStorage.getItem('yt_dalle_api_key');
+  if(s){ document.getElementById('dalleKey').value=s; showImgKeySaved('dalleKey',true); }
+})();
+document.getElementById('dalleKey').addEventListener('input', function(){
+  const v=this.value.trim();
+  if(v.startsWith('sk-')&&v.length>20){ localStorage.setItem('yt_dalle_api_key',v); showImgKeySaved('dalleKey',true); }
+  else if(!v){ localStorage.removeItem('yt_dalle_api_key'); showImgKeySaved('dalleKey',false); }
+});
+
+// ── HF Token 저장/복원 ──
+(function(){
+  const s = localStorage.getItem('yt_hf_api_key');
+  if(s){ document.getElementById('hfToken').value=s; showImgKeySaved('hfToken',true); }
+})();
+document.getElementById('hfToken').addEventListener('input', function(){
+  const v=this.value.trim();
+  if(v.startsWith('hf_')&&v.length>10){ localStorage.setItem('yt_hf_api_key',v); showImgKeySaved('hfToken',true); }
+  else if(!v){ localStorage.removeItem('yt_hf_api_key'); showImgKeySaved('hfToken',false); }
+});
+
+// 초기 UI 상태 적용
+setImgProvider(imgProvider);
 
 document.getElementById('charName').addEventListener('input', function(){
   document.getElementById('charNameDisplay').textContent = this.value;
@@ -1306,10 +1369,10 @@ function onThumbError(n, i, msg=''){
 
 async function regenThumb(n,i){
   const geminiKey = document.getElementById('geminiApiKey').value.trim();
-  if(!geminiKey){ toast('HuggingFace API Token을 입력해주세요','error'); return; }
+  if(!getImgApiKey()){ toast('이미지 API Key를 입력해주세요','error'); return; }
   const scene = stepImages[n][i]?.prompt || SCENE_FALLBACKS[n][0];
   stepImages[n][i].loaded = false;
-  await generateAndLoadThumb(n, i, scene, geminiKey);
+  await generateAndLoadThumb(n, i, scene);
 }
 
 function openThumb(n, i){
@@ -1319,34 +1382,54 @@ function openThumb(n, i){
   if(w) w.document.write(`<!DOCTYPE html><html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${url}" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>`);
 }
 
-// ── HuggingFace FLUX 이미지 생성 ──
-async function callImagenAPI(prompt, hfToken){
-  const model = document.getElementById('geminiModel').value;
-  const resp = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ inputs: prompt })
-    }
-  );
+// ── 이미지 생성 (프로바이더 자동 분기) ──
+async function callImagenAPI(prompt){
+  const key = getImgApiKey();
+  if(!key) throw new Error(imgProvider==='dalle' ? 'OpenAI API Key를 입력해주세요' : 'HuggingFace Token을 입력해주세요');
+  return imgProvider==='dalle' ? callDallE3(prompt, key) : callFlux(prompt, key);
+}
 
-  // 모델 콜드스타트: 첫 요청 시 로딩 중일 수 있음
-  if(resp.status === 503){
-    const info = await resp.json().catch(()=>({}));
-    const wait = Math.round(info.estimated_time || 20);
-    throw new Error(`모델 로딩 중 (약 ${wait}초 소요)`);
+// ── DALL-E 3 ──
+async function callDallE3(prompt, apiKey){
+  const quality = document.getElementById('dalleQuality').value;
+  const resp = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size: '1792x1024',
+      quality,
+      response_format: 'b64_json'
+    })
+  });
+  if(!resp.ok){
+    const e = await resp.json().catch(()=>({}));
+    throw new Error(e.error?.message || `OpenAI HTTP ${resp.status}`);
   }
+  const data = await resp.json();
+  const b64 = data.data?.[0]?.b64_json;
+  if(!b64) throw new Error('DALL-E 이미지 데이터 없음');
+  return `data:image/png;base64,${b64}`;
+}
 
+// ── HuggingFace FLUX ──
+async function callFlux(prompt, hfToken){
+  const model = document.getElementById('hfModel').value;
+  const resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inputs: prompt })
+  });
+  if(resp.status===503){
+    const info = await resp.json().catch(()=>({}));
+    throw new Error(`모델 로딩 중 (약 ${Math.round(info.estimated_time||20)}초 소요)`);
+  }
   if(!resp.ok){
     const txt = await resp.text().catch(()=>'');
     throw new Error(`HF ${resp.status}: ${txt.slice(0,80)}`);
   }
-
-  // 응답이 이미지 바이너리(blob) → Data URL 변환
   const blob = await resp.blob();
   return new Promise((resolve, reject)=>{
     const reader = new FileReader();
@@ -1371,13 +1454,13 @@ function setThumbLoading(n, i){
   if(ret) ret.style.display='none';
 }
 
-// ── 이미지 1장 생성 (Imagen 3, 최대 maxTry회) ──
-async function generateAndLoadThumb(n, i, scene, geminiKey, maxTry=3){
+// ── 이미지 1장 생성 (최대 maxTry회) ──
+async function generateAndLoadThumb(n, i, scene, maxTry=3){
   setThumbLoading(n, i);
   const prompt = buildImagePrompt(scene);
   for(let attempt=1; attempt<=maxTry; attempt++){
     try{
-      const dataUrl = await callImagenAPI(prompt, geminiKey);
+      const dataUrl = await callImagenAPI(prompt);
       stepImages[n][i].url = dataUrl;
       stepImages[n][i].loaded = true;
       const imgEl = document.getElementById(`timg_${n}_${i}`);
@@ -1417,9 +1500,8 @@ function downloadThumb(n, i){
 
 // ── 단계별 이미지 생성 (Imagen 3 순차) ──
 async function generateStepImages(n){
-  const apiKey = document.getElementById('apiKey').value.trim();       // Claude (선택)
-  const geminiKey = document.getElementById('geminiApiKey').value.trim(); // Gemini (필수)
-  if(!geminiKey){ toast('HuggingFace API Token을 입력해주세요','error'); return; }
+  if(!getImgApiKey()){ toast(imgProvider==='dalle'?'OpenAI API Key를 입력해주세요':'HuggingFace Token을 입력해주세요','error'); return; }
+  const apiKey = document.getElementById('apiKey').value.trim(); // Claude (선택)
   const count = imgCounts[n];
 
   setSiStatus(n,'gen');
@@ -1433,9 +1515,9 @@ async function generateStepImages(n){
   stepImages[n] = scenes.map(prompt=>({prompt, url:'', loaded:false}));
   renderStrip(n);
 
-  // 3. Imagen 3으로 한 장씩 순서대로 생성
+  // 3. 이미지 한 장씩 순서대로 생성
   for(let i=0; i<count; i++){
-    await generateAndLoadThumb(n, i, scenes[i], geminiKey);
+    await generateAndLoadThumb(n, i, scenes[i]);
     setStripProgress(n, Math.round((i+1)/count*100));
     if(i < count-1) await new Promise(r=>setTimeout(r, 500));
   }
@@ -1457,7 +1539,7 @@ async function generateAllImages(){
 // ── 캐릭터 미리보기 (Imagen 3) ──
 async function previewCharacter(){
   const geminiKey = document.getElementById('geminiApiKey').value.trim();
-  if(!geminiKey){ toast('HuggingFace API Token을 입력해주세요','error'); return; }
+  if(!getImgApiKey()){ toast('이미지 API Key를 입력해주세요','error'); return; }
   const charPrompt = document.getElementById('charPrompt').value.trim();
   const style = selectedStyle;
   const prompt = `${charPrompt}, standing pose, full body, ${style}, character reference sheet`;
@@ -1465,7 +1547,7 @@ async function previewCharacter(){
   const ph  = document.getElementById('charPreviewPlaceholder');
   ph.textContent='⏳'; ph.style.display='flex'; img.style.display='none';
   try{
-    const dataUrl = await callImagenAPI(prompt, geminiKey);
+    const dataUrl = await callImagenAPI(prompt);
     img.src = dataUrl;
     ph.style.display='none'; img.style.display='block';
     toast('캐릭터 미리보기 완료!','success');
