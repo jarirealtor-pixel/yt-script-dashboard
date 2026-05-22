@@ -275,8 +275,17 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
         <div class="input-group" style="margin-top:8px;">
           <label>품질</label>
           <select id="dalleQuality">
-            <option value="standard">Standard (₩55/장 · 17장≈₩935)</option>
-            <option value="hd">HD (₩110/장 · 17장≈₩1,870)</option>
+            <option value="medium">Medium (₩40/장 · 17장≈₩680)</option>
+            <option value="high">High (₩120/장 · 17장≈₩2,040)</option>
+            <option value="low">Low (₩10/장 · 빠름)</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-top:8px;">
+          <label>모델</label>
+          <select id="dalleModel" onchange="onDalleModelChange()">
+            <option value="gpt-image-1">gpt-image-1 (최신·최고품질)</option>
+            <option value="dall-e-3">dall-e-3 (이전 세대)</option>
+            <option value="dall-e-2">dall-e-2 (기본·저렴)</option>
           </select>
         </div>
         <div style="background:#1a2a1a;border-radius:6px;padding:8px 10px;font-size:.7rem;color:var(--accent3);margin-top:8px;line-height:1.6;">
@@ -1403,20 +1412,45 @@ async function callImagenAPI(prompt){
   return imgProvider==='dalle' ? callDallE3(prompt, key) : callFlux(prompt, key);
 }
 
-// ── DALL-E 3 ──
+// ── 모델 변경 시 품질 옵션 업데이트 ──
+function onDalleModelChange(){
+  const model = document.getElementById('dalleModel').value;
+  const qSel  = document.getElementById('dalleQuality');
+  if(model === 'gpt-image-1'){
+    qSel.innerHTML = `
+      <option value="medium">Medium (₩40/장 · 17장≈₩680)</option>
+      <option value="high">High (₩120/장 · 17장≈₩2,040)</option>
+      <option value="low">Low (₩10/장 · 빠름)</option>`;
+  } else if(model === 'dall-e-3'){
+    qSel.innerHTML = `
+      <option value="standard">Standard (₩55/장 · 17장≈₩935)</option>
+      <option value="hd">HD (₩110/장 · 17장≈₩1,870)</option>`;
+  } else {
+    qSel.innerHTML = `<option value="">기본 (₩2/장)</option>`;
+  }
+}
+
+// ── OpenAI 이미지 생성 (모델별 파라미터 자동 처리) ──
 async function callDallE3(prompt, apiKey){
+  const model   = document.getElementById('dalleModel').value;
   const quality = document.getElementById('dalleQuality').value;
+
+  // 모델별 파라미터 구성
+  const body = { model, prompt, n: 1 };
+  if(model === 'gpt-image-1'){
+    body.size    = '1536x1024';   // 16:9 landscape
+    body.quality = quality;        // low / medium / high
+  } else if(model === 'dall-e-3'){
+    body.size    = '1792x1024';
+    body.quality = quality;        // standard / hd
+  } else {
+    body.size    = '1024x1024';    // dall-e-2는 정사각형만
+  }
+
   const resp = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt,
-      n: 1,
-      size: '1792x1024',
-      quality
-      // response_format 파라미터 제거됨 (OpenAI API 업데이트)
-    })
+    body: JSON.stringify(body)
   });
   if(!resp.ok){
     const e = await resp.json().catch(()=>({}));
@@ -1424,11 +1458,10 @@ async function callDallE3(prompt, apiKey){
   }
   const data = await resp.json();
   const imgData = data.data?.[0];
-  if(!imgData) throw new Error('DALL-E 이미지 데이터 없음');
-  // b64_json 또는 url 둘 다 처리
+  if(!imgData) throw new Error('이미지 데이터 없음');
   if(imgData.b64_json) return `data:image/png;base64,${imgData.b64_json}`;
-  if(imgData.url) return imgData.url;
-  throw new Error('DALL-E 응답에 이미지 없음');
+  if(imgData.url)      return imgData.url;
+  throw new Error('OpenAI 응답에 이미지 없음');
 }
 
 // ── HuggingFace FLUX ──
