@@ -585,7 +585,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
         </div>
         <div class="input-group">
           <label>캐릭터 기본 프롬프트 (영어, 이미지 생성에 사용)</label>
-          <textarea id="charPrompt" rows="3">stickman agent, suit, house key, line art, white bg</textarea>
+          <textarea id="charPrompt" rows="3">stickman agent, suit, house key, line art</textarea>
         </div>
         <div>
           <label style="display:block;margin-bottom:6px;">이미지 스타일</label>
@@ -1269,6 +1269,18 @@ const SCENE_FALLBACKS = {
   3:['stickman at whiteboard, arrows','stickman pointing culprit','stickman explains mechanism','inside outside analysis','stickman vs system diagram'],
   4:['stickman thumbs up, solution','stickman checklist, house key','stickman confident, golden path','stickman celebrates success']
 };
+const SCENE_FALLBACKS_KO = {
+  1:['충격적 반전','위기 감지','첫 번째 신호'],
+  2:['돈이 사라진다','위험 경보','빠져나가는 돈','괴물과 맞서다','텅빈 지갑'],
+  3:['화이트보드 분석','진짜 범인 지목','메커니즘 설명','내외부 분해','시스템 대결'],
+  4:['해결책 발견','실행 체크리스트','황금 경로','성공 완료']
+};
+const STEP_BACKGROUNDS = {
+  1:'city skyline background, dramatic lighting, high contrast',
+  2:'dark stormy sky background, red atmosphere, ominous clouds',
+  3:'office interior background, whiteboard visible, desk lamp light',
+  4:'bright hopeful background, warm golden sunlight, optimistic'
+};
 const IMG_LABELS = {1:'후킹',2:'위기고조',3:'원인분석',4:'해결책'};
 
 // 단계별 이미지 데이터: {url, prompt, loaded}
@@ -1302,25 +1314,44 @@ function updateTotalCount(){
 
 // ── Claude로 N개 장면 설명 생성 ──
 async function getScenePrompts(n, count, apiKey){
-  const fallbacks = SCENE_FALLBACKS[n];
+  const fallbacks   = SCENE_FALLBACKS[n];
+  const fallbacksKo = SCENE_FALLBACKS_KO[n];
   if(!stepOutputs[n] || !apiKey){
-    return Array(count).fill(0).map((_,i)=> fallbacks[i % fallbacks.length]);
+    return Array(count).fill(0).map((_,i)=>({
+      korean: fallbacksKo[i % fallbacksKo.length],
+      english: fallbacks[i % fallbacks.length]
+    }));
   }
   try{
     const result = await callClaude(
-      `Break the script into exactly ${count} visual scenes for a stickman character. Output ONLY lines like: 1|5 english words. Nothing else.`,
+      `Break the script into exactly ${count} visual scenes for a stickman character.
+Output ONLY lines in this exact format: number|Korean title max 8 chars|5 english words
+Example: 1|충격적 반전|shocked stickman raises both hands
+Nothing else. No explanation. No blank lines.`,
       `Section: ${IMG_LABELS[n]}\n${stepOutputs[n].slice(0,700)}`,
       apiKey,
-      count * 25 + 30
+      count * 40 + 60
     );
-    const lines = result.trim().split('\n')
-      .map(l=>{ const p=l.indexOf('|'); return p>-1 ? l.slice(p+1).trim().slice(0,45) : ''; })
-      .filter(Boolean);
-    // 부족하면 fallback으로 채움
-    while(lines.length < count) lines.push(fallbacks[lines.length % fallbacks.length]);
-    return lines.slice(0, count);
+    const scenes = result.trim().split('\n').map(l=>{
+      const parts = l.split('|');
+      if(parts.length >= 3){
+        return { korean: parts[1].trim().slice(0,10), english: parts[2].trim().slice(0,60) };
+      }
+      if(parts.length === 2){
+        return { korean: '', english: parts[1].trim().slice(0,60) };
+      }
+      return null;
+    }).filter(Boolean);
+    while(scenes.length < count) scenes.push({
+      korean: fallbacksKo[scenes.length % fallbacksKo.length],
+      english: fallbacks[scenes.length % fallbacks.length]
+    });
+    return scenes.slice(0, count);
   }catch{
-    return Array(count).fill(0).map((_,i)=> fallbacks[i % fallbacks.length]);
+    return Array(count).fill(0).map((_,i)=>({
+      korean: fallbacksKo[i % fallbacksKo.length],
+      english: fallbacks[i % fallbacks.length]
+    }));
   }
 }
 
@@ -1346,7 +1377,7 @@ function renderStrip(n){
         <div class="thumb-num">${i+1}</div>
         ${img.url ? `<span class="thumb-retry" id="tret_${n}_${i}" onclick="event.stopPropagation();regenThumb(${n},${i})">재시도</span>` : ''}
       </div>
-      <div class="thumb-desc">${img.prompt||''}</div>
+      <div class="thumb-desc">${img.promptKo || img.prompt || ''}</div>
       <div class="thumb-actions">
         ${img.loaded ? `
           <button class="btn btn-ghost btn-xs" onclick="openThumb(${n},${i})">🔗 열기</button>
@@ -1377,10 +1408,12 @@ function onThumbError(n, i, msg=''){
 }
 
 async function regenThumb(n,i){
-  const geminiKey = document.getElementById('geminiApiKey').value.trim();
   if(!getImgApiKey()){ toast('이미지 API Key를 입력해주세요','error'); return; }
-  const scene = stepImages[n][i]?.prompt || SCENE_FALLBACKS[n][0];
-  stepImages[n][i].loaded = false;
+  const imgData = stepImages[n]?.[i];
+  const scene = imgData
+    ? { korean: imgData.promptKo || '', english: imgData.prompt || SCENE_FALLBACKS[n][0] }
+    : { korean: SCENE_FALLBACKS_KO[n][0], english: SCENE_FALLBACKS[n][0] };
+  if(imgData) imgData.loaded = false;
   await generateAndLoadThumb(n, i, scene);
 }
 
@@ -1489,11 +1522,55 @@ async function callFlux(prompt, hfToken){
   });
 }
 
-// ── 이미지 프롬프트 빌드 (길이 제한 없음) ──
-function buildImagePrompt(scene){
+// ── 이미지 프롬프트 빌드 ──
+function buildImagePrompt(sceneEn, step){
   const charBase = document.getElementById('charPrompt').value.trim();
   const style = selectedStyle;
-  return `${charBase}, ${scene}, ${style}, storyboard panel illustration, simple clear background`;
+  const bg = STEP_BACKGROUNDS[step] || 'detailed background scene';
+  return `${charBase}, ${sceneEn}, ${style}, ${bg}, storyboard panel illustration`;
+}
+
+// ── 한글 텍스트 오버레이 (Canvas API — AI 글자 깨짐 없음) ──
+async function addKoreanTextOverlay(imgUrl, koreanText){
+  if(!koreanText) return imgUrl;
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+
+      // 원본 이미지 그리기
+      ctx.drawImage(img, 0, 0);
+
+      // 하단 그라데이션 바
+      const barH = Math.max(44, Math.round(img.height * 0.2));
+      const grad = ctx.createLinearGradient(0, img.height - barH, 0, img.height);
+      grad.addColorStop(0,   'rgba(0,0,0,0)');
+      grad.addColorStop(0.35,'rgba(0,0,0,0.72)');
+      grad.addColorStop(1,   'rgba(0,0,0,0.93)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, img.height - barH, img.width, barH);
+
+      // 한글 텍스트
+      const fontSize = Math.max(20, Math.round(img.height * 0.072));
+      ctx.font = `700 ${fontSize}px "Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","나눔고딕",sans-serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.95)';
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      ctx.fillText(koreanText, img.width / 2, img.height - barH * 0.4);
+
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = ()=>resolve(imgUrl); // 실패 시 원본 반환
+    img.src = imgUrl;
+  });
 }
 
 // ── 썸네일 로딩 상태 표시 ──
@@ -1507,10 +1584,15 @@ function setThumbLoading(n, i){
 // ── 이미지 1장 생성 (최대 maxTry회) ──
 async function generateAndLoadThumb(n, i, scene, maxTry=3){
   setThumbLoading(n, i);
-  const prompt = buildImagePrompt(scene);
+  // scene은 {korean, english} 객체 또는 단순 문자열(fallback)
+  const sceneEn = (scene && typeof scene === 'object') ? (scene.english || '') : String(scene || '');
+  const sceneKo = (scene && typeof scene === 'object') ? (scene.korean  || '') : '';
+  const prompt = buildImagePrompt(sceneEn, n);
   for(let attempt=1; attempt<=maxTry; attempt++){
     try{
-      const dataUrl = await callImagenAPI(prompt);
+      let dataUrl = await callImagenAPI(prompt);
+      // 한글 텍스트 오버레이 (Canvas로 깨짐 없이 처리)
+      if(sceneKo) dataUrl = await addKoreanTextOverlay(dataUrl, sceneKo);
       stepImages[n][i].url = dataUrl;
       stepImages[n][i].loaded = true;
       const imgEl = document.getElementById(`timg_${n}_${i}`);
@@ -1568,7 +1650,11 @@ async function generateStepImages(n){
   const scenes = await getScenePrompts(n, count, apiKey);
 
   // 2. 슬롯 초기화 → 한 번만 렌더
-  stepImages[n] = scenes.map(prompt=>({prompt, url:'', loaded:false}));
+  stepImages[n] = scenes.map(scene=>({
+    promptKo: (scene && typeof scene === 'object') ? (scene.korean  || '') : '',
+    prompt:   (scene && typeof scene === 'object') ? (scene.english || scene) : String(scene || ''),
+    url:'', loaded:false
+  }));
   renderStrip(n);
 
   // 3. 이미지 한 장씩 순서대로 생성
@@ -1592,9 +1678,8 @@ async function generateAllImages(){
   toast('전체 이미지 생성 완료!','success');
 }
 
-// ── 캐릭터 미리보기 (Imagen 3) ──
+// ── 캐릭터 미리보기 ──
 async function previewCharacter(){
-  const geminiKey = document.getElementById('geminiApiKey').value.trim();
   if(!getImgApiKey()){ toast('이미지 API Key를 입력해주세요','error'); return; }
   const charPrompt = document.getElementById('charPrompt').value.trim();
   const style = selectedStyle;
