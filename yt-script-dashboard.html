@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YouTube 대본 생성 대시보드 — 경제학 똑똑 스타일</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root {
   --bg:#0f1117; --surface:#1a1d27; --surface2:#222536; --surface3:#2a2e45;
@@ -448,6 +449,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
   <div class="right-tabs">
     <div class="rtab active" onclick="switchRTab('script')">📝 대본 생성</div>
     <div class="rtab" onclick="switchRTab('image')">🎨 이미지 생성</div>
+    <div class="rtab" onclick="switchRTab('export')">📦 자산 내보내기</div>
   </div>
 
   <!-- ── 대본 탭 ── -->
@@ -702,6 +704,128 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
 
   </div><!-- /rc-image -->
 
+  <!-- ── 자산 내보내기 탭 ── -->
+  <div class="right-content hidden" id="rc-export">
+
+    <!-- ── 워크플로 안내 ── -->
+    <div style="background:linear-gradient(135deg,#1a2d1a,#1a1d2d);border:1px solid var(--accent3);border-radius:11px;padding:16px 18px;">
+      <div style="font-size:.88rem;font-weight:700;color:var(--accent3);margin-bottom:8px;">🎬 CapCut 작업 순서</div>
+      <div style="font-size:.78rem;color:var(--text2);line-height:1.9;">
+        ① 여기서 <strong style="color:var(--text)">음성(.mp3)</strong> + <strong style="color:var(--text)">이미지(.zip)</strong> + <strong style="color:var(--text)">자막(.srt)</strong> 다운로드<br>
+        ② CapCut 새 프로젝트 → 이미지 가져오기 → 순서 배치<br>
+        ③ 음성 파일 삽입 → 타임라인 맞추기<br>
+        ④ 자막 → SRT 파일 불러오기 → 자동 배치 완료
+      </div>
+    </div>
+
+    <!-- ── TTS 음성 생성 ── -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleExportSection('tts')" style="cursor:pointer;">
+        <div class="step-num" style="background:#2d1f5a;color:#a78bfa;">🔊</div>
+        <div class="step-info"><div class="step-name">TTS 음성 생성 (.mp3)</div><div class="step-desc">OpenAI TTS · 자연스러운 한국어 음성</div></div>
+        <div class="step-status s-idle" id="ttsStat">대기</div>
+        <div class="step-chevron open" id="ttsChevron">▼</div>
+      </div>
+      <div class="step-body open" id="ttsBody" style="display:block;padding:0 18px 18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="input-group">
+            <label>음성 모델</label>
+            <select id="ttsModel">
+              <option value="tts-1">tts-1 (빠름·저렴)</option>
+              <option value="tts-1-hd">tts-1-hd (고품질·느림)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>말하기 속도</label>
+            <select id="ttsSpeed">
+              <option value="0.9">느리게 (0.9×)</option>
+              <option value="1.0" selected>보통 (1.0×)</option>
+              <option value="1.1">약간 빠르게 (1.1×)</option>
+              <option value="1.25">빠르게 (1.25×)</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group" style="margin-bottom:12px;">
+          <label>목소리</label>
+          <select id="ttsVoice">
+            <option value="nova">nova (여성·자연스러움·추천)</option>
+            <option value="alloy">alloy (중성·또렷함)</option>
+            <option value="onyx">onyx (남성·낮은 톤)</option>
+            <option value="shimmer">shimmer (여성·부드러움)</option>
+            <option value="echo">echo (남성·뉴스 톤)</option>
+            <option value="fable">fable (중성·내레이션)</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-bottom:14px;">
+          <label>생성 범위</label>
+          <select id="ttsMode">
+            <option value="full">전체 대본 (1개 파일)</option>
+            <option value="steps">단계별 (4개 파일 — CapCut 장면 배치 추천)</option>
+          </select>
+        </div>
+        <div style="background:#0d1a0d;border-radius:6px;padding:8px 12px;font-size:.72rem;color:var(--accent3);margin-bottom:12px;line-height:1.6;">
+          💡 OpenAI API Key(설정 탭)가 필요합니다 · 1분 음성 약 ₩15~30<br>
+          단계별 선택 시 후킹/위기/분석/해결 각각 별도 mp3로 저장됩니다
+        </div>
+        <button class="btn btn-primary" onclick="generateTTS()" id="ttsBtn">🔊 음성 파일 생성 & 다운로드</button>
+        <div id="ttsProgress" style="display:none;margin-top:10px;">
+          <div class="progress-bar"><div class="progress-fill" id="ttsProgFill" style="width:0%"></div></div>
+          <div id="ttsProgressText" style="font-size:.72rem;color:var(--text2);margin-top:4px;text-align:center;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 자막 파일 생성 ── -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleExportSection('srt')" style="cursor:pointer;">
+        <div class="step-num" style="background:#1e2d3d;color:#60a5fa;">📝</div>
+        <div class="step-info"><div class="step-name">자막 파일 생성 (.srt)</div><div class="step-desc">타이밍 자동 추정 · CapCut SRT 불러오기 호환</div></div>
+        <div class="step-chevron open" id="srtChevron">▼</div>
+      </div>
+      <div class="step-body open" id="srtBody" style="display:block;padding:0 18px 18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="input-group">
+            <label>한 줄 최대 글자 수</label>
+            <select id="srtLineLen">
+              <option value="20">20자 (짧게·보기 편함)</option>
+              <option value="30" selected>30자 (보통)</option>
+              <option value="40">40자 (길게)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>말하기 속도 (자/초)</label>
+            <select id="srtCPS">
+              <option value="3.5">3.5자/초 (천천히)</option>
+              <option value="4.5" selected>4.5자/초 (보통)</option>
+              <option value="5.5">5.5자/초 (빠르게)</option>
+            </select>
+          </div>
+        </div>
+        <div style="background:#0a1a2a;border-radius:6px;padding:8px 12px;font-size:.72rem;color:var(--blue);margin-bottom:12px;line-height:1.6;">
+          💡 대본 생성 완료 후 사용하세요 · Claude API Key 불필요<br>
+          타이밍은 추정값이므로 CapCut에서 미세 조정이 필요할 수 있습니다
+        </div>
+        <button class="btn btn-ghost" onclick="generateSRT()" style="width:100%;border-color:var(--blue);color:var(--blue);">📝 자막 파일(.srt) 다운로드</button>
+      </div>
+    </div>
+
+    <!-- ── 이미지 ZIP 다운로드 ── -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleExportSection('zip')" style="cursor:pointer;">
+        <div class="step-num" style="background:#1a2d1a;color:#4ade80;">🖼️</div>
+        <div class="step-info"><div class="step-name">이미지 패키지 (.zip)</div><div class="step-desc">생성된 스토리보드 이미지 전체 묶음 다운로드</div></div>
+        <div class="step-chevron open" id="zipChevron">▼</div>
+      </div>
+      <div class="step-body open" id="zipBody" style="display:block;padding:0 18px 18px;">
+        <div id="zipPreview" style="background:var(--surface2);border-radius:7px;padding:10px 14px;font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.8;">
+          이미지 탭에서 이미지를 먼저 생성해주세요.
+        </div>
+        <button class="btn btn-ghost" onclick="downloadImagesZip()" style="width:100%;border-color:var(--accent3);color:var(--accent3);">🗜️ 이미지 ZIP 다운로드</button>
+      </div>
+    </div>
+
+  </div><!-- /rc-export -->
+
 </div><!-- /right -->
 </div><!-- /layout -->
 
@@ -907,11 +1031,12 @@ function switchLTab(tab){
   });
 }
 function switchRTab(tab){
+  const ids = ['script','image','export'];
   document.querySelectorAll('.rtab').forEach((t,i)=>{
-    const id = i===0?'script':'image';
-    t.classList.toggle('active', id===tab);
-    document.getElementById('rc-'+id).classList.toggle('hidden', id!==tab);
+    t.classList.toggle('active', ids[i]===tab);
+    document.getElementById('rc-'+ids[i]).classList.toggle('hidden', ids[i]!==tab);
   });
+  if(tab==='export') updateZipPreview();
 }
 function switchRefTab(tab){
   document.querySelectorAll('.rpt').forEach(t=>t.classList.toggle('active',t.dataset.rtab===tab));
@@ -1770,6 +1895,252 @@ async function downloadAllImages(){
     }
   }
   toast(count ? `${count}장 저장 시작`:'저장할 이미지 없음', count?'success':'error');
+}
+
+// ═══════════════════════════════════════════════
+//  자산 내보내기
+// ═══════════════════════════════════════════════
+
+function toggleExportSection(id){
+  const body    = document.getElementById(id+'Body');
+  const chevron = document.getElementById(id+'Chevron');
+  if(!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if(chevron) chevron.style.transform = isOpen ? 'rotate(-90deg)' : '';
+}
+
+// ── switchRTab: 3탭 버전 ──
+// (기존 함수 덮어쓰기 — 아래에 재정의)
+
+// ── 공통 Blob 다운로드 ──
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+// ────────────────────────────────────────────
+//  TTS
+// ────────────────────────────────────────────
+async function generateTTS(){
+  const apiKey = document.getElementById('dalleKey').value.trim();
+  if(!apiKey){ toast('설정 탭에서 OpenAI API Key를 입력해주세요','error'); return; }
+
+  const finalText = document.getElementById('finalScript').textContent;
+  if(!finalText || finalText.includes('자동으로')){ toast('먼저 대본을 생성해주세요','error'); return; }
+
+  const voice   = document.getElementById('ttsVoice').value;
+  const speed   = parseFloat(document.getElementById('ttsSpeed').value);
+  const model   = document.getElementById('ttsModel').value;
+  const mode    = document.getElementById('ttsMode').value;
+  const btn     = document.getElementById('ttsBtn');
+  const progWrap= document.getElementById('ttsProgress');
+  const progFill= document.getElementById('ttsProgFill');
+  const progText= document.getElementById('ttsProgressText');
+  const statEl  = document.getElementById('ttsStat');
+
+  btn.disabled = true; btn.textContent = '⏳ 생성 중...';
+  progWrap.style.display = 'block';
+  statEl.className = 'step-status s-gen'; statEl.textContent = '생성 중...';
+
+  try{
+    const topic = document.getElementById('topicInput').value.slice(0,15) || '대본';
+    if(mode === 'full'){
+      progText.textContent = '전체 대본 음성 변환 중...';
+      progFill.style.width = '30%';
+      const blob = await callOpenAITTS(finalText, apiKey, model, voice, speed);
+      progFill.style.width = '100%';
+      downloadBlob(blob, `TTS_전체_${topic}.mp3`);
+      toast('음성 파일 다운로드 완료!','success');
+    } else {
+      const steps = [1,2,3,4].filter(n=>stepOutputs[n]);
+      for(let idx=0; idx<steps.length; idx++){
+        const n = steps[idx];
+        progText.textContent = `Step ${n} (${IMG_LABELS[n]}) 음성 변환 중... (${idx+1}/${steps.length})`;
+        progFill.style.width = `${Math.round((idx/steps.length)*90)}%`;
+        const blob = await callOpenAITTS(stepOutputs[n], apiKey, model, voice, speed);
+        downloadBlob(blob, `TTS_Step${n}_${IMG_LABELS[n]}_${topic}.mp3`);
+        if(idx < steps.length-1) await new Promise(r=>setTimeout(r,800));
+      }
+      progFill.style.width = '100%';
+      toast(`${steps.length}개 음성 파일 다운로드 완료!`,'success');
+    }
+    statEl.className = 'step-status s-done'; statEl.textContent = '완료';
+  }catch(e){
+    toast('TTS 오류: '+String(e.message).slice(0,60),'error');
+    statEl.className = 'step-status s-idle'; statEl.textContent = '오류';
+  }finally{
+    btn.disabled = false; btn.textContent = '🔊 음성 파일 생성 & 다운로드';
+    setTimeout(()=>{ progWrap.style.display='none'; progFill.style.width='0%'; }, 2000);
+  }
+}
+
+async function callOpenAITTS(text, apiKey, model, voice, speed){
+  const MAX = 4000;
+  const chunks = splitTextIntoChunks(text.trim(), MAX);
+
+  // 단일 chunk
+  if(chunks.length === 1){
+    return await fetchTTSBlob(chunks[0], apiKey, model, voice, speed);
+  }
+
+  // 여러 chunk → 각각 Blob 가져와 합치기 (ArrayBuffer concat)
+  const buffers = [];
+  for(const chunk of chunks){
+    const blob = await fetchTTSBlob(chunk, apiKey, model, voice, speed);
+    buffers.push(await blob.arrayBuffer());
+    await new Promise(r=>setTimeout(r,500));
+  }
+  const total = buffers.reduce((s,b)=>s+b.byteLength,0);
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for(const buf of buffers){ merged.set(new Uint8Array(buf), offset); offset += buf.byteLength; }
+  return new Blob([merged], {type:'audio/mpeg'});
+}
+
+async function fetchTTSBlob(text, apiKey, model, voice, speed){
+  const resp = await fetch('https://api.openai.com/v1/audio/speech',{
+    method:'POST',
+    headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
+    body: JSON.stringify({model, input: text.slice(0,4096), voice, speed, response_format:'mp3'})
+  });
+  if(!resp.ok){
+    const e = await resp.json().catch(()=>({}));
+    throw new Error(e.error?.message || `TTS HTTP ${resp.status}`);
+  }
+  return await resp.blob();
+}
+
+function splitTextIntoChunks(text, maxLen){
+  if(text.length <= maxLen) return [text];
+  const chunks = [];
+  // 단락 기준 분리
+  const paragraphs = text.split(/\n\n+/);
+  let current = '';
+  for(const para of paragraphs){
+    if((current + '\n\n' + para).length > maxLen && current){
+      chunks.push(current.trim());
+      current = para;
+    } else {
+      current = current ? current + '\n\n' + para : para;
+    }
+  }
+  if(current.trim()) chunks.push(current.trim());
+  return chunks.length ? chunks : [text.slice(0, maxLen)];
+}
+
+// ────────────────────────────────────────────
+//  SRT 자막 생성
+// ────────────────────────────────────────────
+function generateSRT(){
+  const finalText = document.getElementById('finalScript').textContent;
+  if(!finalText || finalText.includes('자동으로')){ toast('먼저 대본을 생성해주세요','error'); return; }
+
+  const maxLineLen = parseInt(document.getElementById('srtLineLen').value) || 30;
+  const cps        = parseFloat(document.getElementById('srtCPS').value) || 4.5;
+
+  // 순수 대사 줄만 추출 (제목·구분선·빈 줄 제외)
+  const rawLines = finalText.split('\n').filter(l=>{
+    const t = l.trim();
+    return t && !t.startsWith('■') && !t.startsWith('─') && !t.startsWith('[') && !t.startsWith('#');
+  });
+
+  let srt = '';
+  let idx = 1;
+  let timeSec = 0;
+
+  for(const rawLine of rawLines){
+    // 긴 줄을 maxLineLen 단위로 분할
+    const chunks = chunkString(rawLine.trim(), maxLineLen);
+    for(const chunk of chunks){
+      if(!chunk.trim()) continue;
+      const duration = Math.max(1.2, chunk.length / cps);
+      const endSec   = timeSec + duration;
+      srt += `${idx}\n${srtTime(timeSec)} --> ${srtTime(endSec)}\n${chunk.trim()}\n\n`;
+      timeSec = endSec + 0.08;
+      idx++;
+    }
+  }
+
+  if(!srt){ toast('자막으로 변환할 내용이 없습니다','error'); return; }
+
+  const topic = document.getElementById('topicInput').value.slice(0,20) || '대본';
+  const blob = new Blob(['﻿'+srt],{type:'text/plain;charset=utf-8'}); // BOM for Korean
+  downloadBlob(blob, `자막_${topic}.srt`);
+  toast('자막 파일(.srt) 다운로드 완료!','success');
+}
+
+function chunkString(str, maxLen){
+  const result = [];
+  let s = str;
+  while(s.length > maxLen){
+    // 구두점/공백에서 자르기 시도
+    let cut = maxLen;
+    for(let k=maxLen; k>maxLen*0.6; k--){
+      if(' ,.。!?·'.includes(s[k])){ cut=k+1; break; }
+    }
+    result.push(s.slice(0, cut));
+    s = s.slice(cut).trimStart();
+  }
+  if(s) result.push(s);
+  return result;
+}
+
+function srtTime(sec){
+  const h  = Math.floor(sec/3600);
+  const m  = Math.floor((sec%3600)/60);
+  const s  = Math.floor(sec%60);
+  const ms = Math.round((sec%1)*1000);
+  return `${pad2(h)}:${pad2(m)}:${pad2(s)},${String(ms).padStart(3,'0')}`;
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+// ────────────────────────────────────────────
+//  이미지 ZIP 다운로드
+// ────────────────────────────────────────────
+function updateZipPreview(){
+  const el = document.getElementById('zipPreview');
+  if(!el) return;
+  let total = 0;
+  const lines = [];
+  for(let n=1;n<=4;n++){
+    const loaded = stepImages[n].filter(x=>x.url&&x.loaded).length;
+    if(loaded) lines.push(`Step ${n} ${IMG_LABELS[n]}: ${loaded}장`);
+    total += loaded;
+  }
+  el.innerHTML = total
+    ? `<strong style="color:var(--accent3)">${total}장</strong> 준비됨<br><span style="font-size:.7rem">${lines.join(' · ')}</span>`
+    : '이미지 탭에서 이미지를 먼저 생성해주세요.';
+}
+
+async function downloadImagesZip(){
+  if(typeof JSZip === 'undefined'){ toast('JSZip 라이브러리 로딩 실패','error'); return; }
+
+  const zip = new JSZip();
+  const folder = zip.folder('스토리보드_이미지');
+  let count = 0;
+
+  for(let n=1;n<=4;n++){
+    for(let i=0;i<stepImages[n].length;i++){
+      const img = stepImages[n][i];
+      if(img.url && img.loaded && img.url.startsWith('data:')){
+        const b64 = img.url.split(',')[1];
+        const label = img.promptKo || img.prompt || `장면${i+1}`;
+        folder.file(`Step${n}_${IMG_LABELS[n]}_${i+1}_${label.slice(0,10)}.png`, b64, {base64:true});
+        count++;
+      }
+    }
+  }
+
+  if(!count){ toast('저장할 이미지가 없습니다','error'); return; }
+
+  toast(`${count}장 ZIP 패키징 중...`,'info');
+  const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE'});
+  const topic = document.getElementById('topicInput').value.slice(0,20) || '스토리보드';
+  downloadBlob(blob, `이미지_${topic}.zip`);
+  toast(`${count}장 ZIP 다운로드 완료!`,'success');
 }
 
 // ── 초기화 ──
