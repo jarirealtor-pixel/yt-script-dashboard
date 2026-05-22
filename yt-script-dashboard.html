@@ -1378,9 +1378,23 @@ async function regenThumb(n,i){
 function openThumb(n, i){
   const url = stepImages[n]?.[i]?.url;
   if(!url) return;
-  const w = window.open('','_blank');
-  if(w) w.document.write(`<!DOCTYPE html><html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${url}" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>`);
+  if(url.startsWith('data:')){
+    // Data URL → Blob URL로 변환해서 새 탭 열기
+    try{
+      const [header, b64] = url.split(',');
+      const mime = header.match(/:(.*?);/)[1];
+      const bytes = atob(b64);
+      const arr = new Uint8Array(bytes.length);
+      for(let k=0;k<bytes.length;k++) arr[k]=bytes.charCodeAt(k);
+      const blobUrl = URL.createObjectURL(new Blob([arr],{type:mime}));
+      window.open(blobUrl,'_blank');
+    }catch{ window.open(url,'_blank'); }
+  } else {
+    window.open(url,'_blank');
+  }
 }
+
+// ── 다운로드 (data URL: 직접 저장 / 일반 URL: 새 탭) ──
 
 // ── 이미지 생성 (프로바이더 자동 분기) ──
 async function callImagenAPI(prompt){
@@ -1400,8 +1414,8 @@ async function callDallE3(prompt, apiKey){
       prompt,
       n: 1,
       size: '1792x1024',
-      quality,
-      response_format: 'b64_json'
+      quality
+      // response_format 파라미터 제거됨 (OpenAI API 업데이트)
     })
   });
   if(!resp.ok){
@@ -1409,9 +1423,12 @@ async function callDallE3(prompt, apiKey){
     throw new Error(e.error?.message || `OpenAI HTTP ${resp.status}`);
   }
   const data = await resp.json();
-  const b64 = data.data?.[0]?.b64_json;
-  if(!b64) throw new Error('DALL-E 이미지 데이터 없음');
-  return `data:image/png;base64,${b64}`;
+  const imgData = data.data?.[0];
+  if(!imgData) throw new Error('DALL-E 이미지 데이터 없음');
+  // b64_json 또는 url 둘 다 처리
+  if(imgData.b64_json) return `data:image/png;base64,${imgData.b64_json}`;
+  if(imgData.url) return imgData.url;
+  throw new Error('DALL-E 응답에 이미지 없음');
 }
 
 // ── HuggingFace FLUX ──
@@ -1492,10 +1509,16 @@ async function generateAndLoadThumb(n, i, scene, maxTry=3){
 function downloadThumb(n, i){
   const img = stepImages[n]?.[i];
   if(!img?.url || !img.loaded) return;
-  const a = document.createElement('a');
-  a.href = img.url;
-  a.download = `졸라맨_step${n}_${i+1}.png`;
-  a.click();
+  if(img.url.startsWith('data:')){
+    const a = document.createElement('a');
+    a.href = img.url;
+    a.download = `졸라맨_step${n}_${i+1}.png`;
+    a.click();
+  } else {
+    // OpenAI CDN URL → 새 탭에서 열고 직접 저장 (CORS 제한)
+    window.open(img.url,'_blank');
+    toast('새 탭에서 이미지를 마우스 우클릭 → 저장하세요','info');
+  }
 }
 
 // ── 단계별 이미지 생성 (Imagen 3 순차) ──
