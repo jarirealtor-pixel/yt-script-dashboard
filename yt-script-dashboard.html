@@ -168,7 +168,7 @@ textarea{resize:vertical;min-height:65px;}
 @keyframes csspin{to{transform:rotate(360deg);}}
 .thumb-num{position:absolute;top:5px;left:6px;background:rgba(0,0,0,.75);color:#fff;font-size:.62rem;padding:2px 6px;border-radius:4px;font-weight:700;}
 .thumb-retry{position:absolute;top:4px;right:4px;background:rgba(255,77,79,.85);color:#fff;font-size:.6rem;padding:2px 6px;border-radius:4px;cursor:pointer;display:none;}
-.thumb-desc{font-size:.67rem;color:var(--text2);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.thumb-desc{font-size:.72rem;color:var(--accent3);font-weight:600;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;letter-spacing:.03em;}
 .thumb-actions{display:flex;gap:4px;}
 /* ── 진행 표시줄 ── */
 .strip-progress{height:3px;background:var(--border);overflow:hidden;}
@@ -1651,8 +1651,7 @@ async function generateAndLoadThumb(n, i, scene, maxTry=3){
   for(let attempt=1; attempt<=maxTry; attempt++){
     try{
       let dataUrl = await callImagenAPI(prompt);
-      // 한글 텍스트 오버레이 (Canvas로 깨짐 없이 처리)
-      if(sceneKo) dataUrl = await addKoreanTextOverlay(dataUrl, sceneKo);
+      // 한글 레이블은 이미지 안에 넣지 않음 — 썸네일 아래 UI 설명에만 표시
       stepImages[n][i].url = dataUrl;
       stepImages[n][i].loaded = true;
       const imgEl = document.getElementById(`timg_${n}_${i}`);
