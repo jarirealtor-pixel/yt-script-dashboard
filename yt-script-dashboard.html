@@ -254,10 +254,9 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
       <div class="input-group" style="margin-top:8px;">
         <label>모델 <span style="color:var(--text2);font-size:.68rem;">(과부하 시 Haiku로 변경)</span></label>
         <select id="claudeModel">
-          <option value="claude-3-5-haiku-20241022" selected>⚡ Claude 3.5 Haiku (기본·빠름·과부하 없음)</option>
-          <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (고품질·느릴 수 있음)</option>
-          <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (최신·느릴 수 있음)</option>
-          <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (구 기본값·과부하 잦음)</option>
+          <option value="claude-haiku-4-5" selected>⚡ Claude Haiku 4.5 (기본·빠름·과부하 적음)</option>
+          <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (고품질·간헐적 과부하)</option>
+          <option value="claude-opus-4-7">Claude Opus 4.7 (최고품질·느림)</option>
         </select>
       </div>
     </div>
@@ -728,7 +727,7 @@ document.getElementById('topicInput').addEventListener('input', function(){
 
 // ── Claude 모델 저장/복원 ──
 (function initClaudeModel(){
-  const DEFAULT_MODEL = 'claude-3-5-haiku-20241022';
+  const DEFAULT_MODEL = 'claude-haiku-4-5';
   const saved = localStorage.getItem('yt_claude_model');
   const sel = document.getElementById('claudeModel');
   if(!sel) return;
@@ -1030,11 +1029,11 @@ function setStepOutput(n, text, empty=false){
 // ═══════════════════════════════════════════════
 //  CLAUDE API
 // ═══════════════════════════════════════════════
-// 과부하 시 자동 폴백 모델 순서 (정확한 API ID 사용)
+// 과부하 시 자동 폴백 모델 순서 (2026년 현재 유효한 모델)
 const CLAUDE_FALLBACK_MODELS = [
-  'claude-3-5-haiku-20241022',
-  'claude-3-5-sonnet-20241022',
-  'claude-sonnet-4-5'
+  'claude-haiku-4-5',
+  'claude-sonnet-4-6',
+  'claude-opus-4-7'
 ];
 
 async function callClaude(system, user, apiKey, maxTokens=2500, _retry=0){
