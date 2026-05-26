@@ -1928,8 +1928,16 @@ async function generateTTS(){
   const apiKey = document.getElementById('dalleKey').value.trim();
   if(!apiKey){ toast('설정 탭에서 OpenAI API Key를 입력해주세요','error'); return; }
 
-  const finalText = document.getElementById('finalScript').textContent;
-  if(!finalText || finalText.includes('자동으로')){ toast('먼저 대본을 생성해주세요','error'); return; }
+  // 생성된 단계가 하나라도 있는지 확인
+  const hasAnyStep = [1,2,3,4].some(n => stepOutputs[n] && stepOutputs[n].trim());
+  if(!hasAnyStep){ toast('대본 생성 탭에서 먼저 대본을 생성해주세요','error'); return; }
+
+  // finalScript가 없거나 기본값이면 자동 조합
+  let finalText = document.getElementById('finalScript').textContent || '';
+  if(!finalText.trim() || finalText.includes('자동으로') || finalText.includes('조합됩니다')){
+    assembleScript();
+    finalText = document.getElementById('finalScript').textContent || '';
+  }
 
   const voice   = document.getElementById('ttsVoice').value;
   const speed   = parseFloat(document.getElementById('ttsSpeed').value);
@@ -2035,8 +2043,14 @@ function splitTextIntoChunks(text, maxLen){
 //  SRT 자막 생성
 // ────────────────────────────────────────────
 function generateSRT(){
-  const finalText = document.getElementById('finalScript').textContent;
-  if(!finalText || finalText.includes('자동으로')){ toast('먼저 대본을 생성해주세요','error'); return; }
+  const hasAnyStep = [1,2,3,4].some(n => stepOutputs[n] && stepOutputs[n].trim());
+  if(!hasAnyStep){ toast('대본 생성 탭에서 먼저 대본을 생성해주세요','error'); return; }
+
+  let finalText = document.getElementById('finalScript').textContent || '';
+  if(!finalText.trim() || finalText.includes('자동으로') || finalText.includes('조합됩니다')){
+    assembleScript();
+    finalText = document.getElementById('finalScript').textContent || '';
+  }
 
   const maxLineLen = parseInt(document.getElementById('srtLineLen').value) || 30;
   const cps        = parseFloat(document.getElementById('srtCPS').value) || 4.5;
